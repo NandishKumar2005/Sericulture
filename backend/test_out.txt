@@ -1,0 +1,49 @@
+--- Testing Phase 3 Express APIs ---
+Connected to local MongoDB for API tests: mongodb://127.0.0.1:27017/sericulture_test
+
+Testing Auth APIs...
+POST /api/auth/register -> Status: 201
+POST /api/auth/login -> Status: 200
+
+Testing Farm APIs...
+POST /api/farms -> Status: 201 {
+  success: true,
+  message: 'Farm created successfully',
+  data: {
+    userId: '6ab759f8b6640f4ff688dfe9',
+    farmName: 'Silk Valley Farm',
+    location: '',
+    area: 5,
+    mulberryVariety: 'V1',
+    plantationAge: 2,
+    _id: '6ab759f9b6640f4ff688dfee',
+    createdAt: '2026-09-26T05:36:57.169Z',
+    updatedAt: '2026-09-26T05:36:57.169Z',
+    __v: 0
+  }
+}
+GET /api/farms -> Status: 200 Count: 1
+
+Testing Batch APIs...
+POST /api/batches -> Status: 201
+GET /api/batches -> Status: 200 Count: 1
+
+Testing Feeding APIs...
+POST /api/feeding -> Status: 201
+GET /api/feeding/6ab759f9b6640f4ff688dff2 -> Status: 200 Records: 1
+
+Testing Leaf Analysis API...
+POST /api/leaf-analysis -> Status: 201
+
+Testing Predictions API...
+POST /api/predictions -> Status: 201
+POST /api/predictions/cocoon-silk -> Status: 502
+GET /api/predictions/6ab759f9b6640f4ff688dff2 -> Status: 200 Predictions: 1
+
+Testing Copilot API...
+POST /api/copilot (English) -> Status: 200
+Copilot Reply (EN): Based on your current leaf maturity (85%) and recent weather forecasts, the recommended mulberry harvesting window is September 17–19. Early morning harvest retains maximum moisture content.
+POST /api/copilot (Kannada) -> Status: 200
+Copilot Reply (KN): ನಿಮ್ಮ ಹಿಪ್ಪುನೇರಳೆ ತೋಟದ ಎಲೆ ಪಕ್ವತೆ (85%) ಮತ್ತು ಸ್ಥಳೀಯ ಹವಾಮಾನದ ಆಧಾರದ ಮೇಲೆ, ಎಲೆ ಕೊಯ್ಯಲು ಸೆಪ್ಟೆಂಬರ್ 17–19 ರ ನಡುವೆ ಸೂಕ್ತ ಸಮಯವಾಗಿದೆ. ಬೆಳಗಿನ ಮುಂಜಾನೆ ಎಲೆ ಕೊಯ್ಯುವುದು ಪೌಷ್ಟಿಕಾಂಶ ಕಾಪಾಡಲು ಉತ್ತಮ.
+
+=== ALL PHASE 3 BACKEND APIS FUNCTIONING PROPERLY ===

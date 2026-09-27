@@ -1,0 +1,10 @@
+fastapi>=0.110.0
+uvicorn>=0.28.0
+scikit-learn>=1.4.0
+xgboost>=2.0.3
+tensorflow>=2.15.0
+opencv-python-headless>=4.9.0
+pandas>=2.2.0
+numpy>=1.26.4
+pydantic>=2.6.0
+python-dotenv>=1.0.1
