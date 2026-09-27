@@ -467,6 +467,15 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  const handleLaunchWebApp = (e) => {
+    if (e) e.preventDefault();
+    // Opens live mobile app on Vercel or local app window
+    const targetUrl = window.location.origin.includes('vercel.app') 
+      ? window.location.origin.replace('web', 'mobile').replace('dashboard', 'mobile')
+      : '/mobile';
+    window.open(targetUrl, '_blank');
+  };
+
   const currentLangObj = languagesList.find(l => l.code === lang) || languagesList[0];
 
   const modules = [
@@ -872,12 +881,21 @@ export default function App() {
               </ol>
             </div>
 
-            <button
-              onClick={handleDownloadAndRedirect}
-              className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-4 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
-            >
-              <Icons.Download /> {t.downloadSection.btnDownloadMain}
-            </button>
+            <div className="space-y-3 pt-2">
+              <button
+                onClick={handleDownloadAndRedirect}
+                className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-4 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
+              >
+                <Icons.Download /> {t.downloadSection.btnDownloadMain}
+              </button>
+
+              <button
+                onClick={handleLaunchWebApp}
+                className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3 rounded-2xl text-xs transition-all border border-slate-700 cursor-pointer"
+              >
+                ⚡ Launch Instant Mobile App in Browser (No Download Needed)
+              </button>
+            </div>
           </div>
         </div>
       </section>
