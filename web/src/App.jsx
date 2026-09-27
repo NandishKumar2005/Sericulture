@@ -458,18 +458,13 @@ export default function App() {
   const handleDownloadAndRedirect = (e) => {
     if (e) e.preventDefault();
     
-    // 1. Trigger APK file download
+    // Trigger direct APK file download for mobile users
     const link = document.createElement('a');
     link.href = '/ReshmeAI-v1.0.0.apk';
-    link.download = 'ReshmeAI-v1.0.0.apk';
+    link.setAttribute('download', 'ReshmeAI-v1.0.0.apk');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    // 2. Redirect to Mobile Web App
-    setTimeout(() => {
-      window.location.href = 'http://localhost:3000';
-    }, 800);
   };
 
   const currentLangObj = languagesList.find(l => l.code === lang) || languagesList[0];
