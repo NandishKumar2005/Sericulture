@@ -461,9 +461,11 @@ export default function App() {
   const handleDownloadAndRedirect = (e) => {
     if (e) e.preventDefault();
     
-    // Trigger direct APK file download for mobile users
+    // Direct download of official compiled Android APK binary
+    const apkReleaseUrl = 'https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/app-debug.apk';
     const link = document.createElement('a');
-    link.href = '/ReshmeAI-v1.0.0.apk';
+    link.href = apkReleaseUrl;
+    link.target = '_blank';
     link.setAttribute('download', 'ReshmeAI-v1.0.0.apk');
     document.body.appendChild(link);
     link.click();

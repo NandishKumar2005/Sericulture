@@ -46,3 +46,15 @@ jobs:
         with:
           name: ReshmeAI-v1.0.0.apk
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.0
+          name: ReshmeAI Android APK Release v1.0.0
+          body: |
+            Official compiled Android APK for ReshmeAI Smart Sericulture Mobile App.
+            Compatible with Android 8.0+.
+          files: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
