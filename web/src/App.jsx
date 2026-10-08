@@ -443,9 +443,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(0);
   const [lang, setLang] = useState('en'); // 'en', 'kn', 'hi', 'te', 'ta', 'ml'
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
-  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState('dashboard');
-  const [scannedResult, setScannedResult] = useState(null);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
@@ -459,13 +456,10 @@ export default function App() {
   ];
 
   const handleDownloadAndRedirect = (e) => {
-    if (e) e.preventDefault();
-    
     // Direct download of official compiled Android APK binary
-    const apkReleaseUrl = 'https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/app-debug.apk';
+    const apkUrl = '/ReshmeAI-v1.0.0.apk';
     const link = document.createElement('a');
-    link.href = apkReleaseUrl;
-    link.target = '_blank';
+    link.href = apkUrl;
     link.setAttribute('download', 'ReshmeAI-v1.0.0.apk');
     document.body.appendChild(link);
     link.click();
@@ -474,7 +468,7 @@ export default function App() {
 
   const handleLaunchWebApp = (e) => {
     if (e) e.preventDefault();
-    setIsMobileModalOpen(true);
+    window.open('https://sericulture-iota.vercel.app/', '_blank', 'noopener,noreferrer');
   };
 
   const currentLangObj = languagesList.find(l => l.code === lang) || languagesList[0];
@@ -665,12 +659,23 @@ export default function App() {
               )}
             </div>
 
-            <button
+            <a
+              href="https://sericulture-iota.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden lg:flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-emerald-500/40 text-emerald-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition-all shadow-md"
+            >
+              ⚡ Launch App
+            </a>
+
+            <a
+              href="/ReshmeAI-v1.0.0.apk"
+              download="ReshmeAI-v1.0.0.apk"
               onClick={handleDownloadAndRedirect}
               className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Icons.Download /> {t.nav.btnDownload}
-            </button>
+            </a>
           </div>
         </div>
       </nav>
@@ -695,12 +700,22 @@ export default function App() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <button
+            <a
+              href="/ReshmeAI-v1.0.0.apk"
+              download="ReshmeAI-v1.0.0.apk"
               onClick={handleDownloadAndRedirect}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-6 py-3.5 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
             >
               <Icons.Download /> {t.hero.btnApk}
-            </button>
+            </a>
+            <a
+              href="https://sericulture-iota.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-slate-900 to-slate-800 hover:bg-slate-800 border border-emerald-500/40 text-emerald-400 font-bold px-6 py-3.5 rounded-2xl text-sm transition-all shadow-lg"
+            >
+              ⚡ Launch Mobile App (Vercel) <Icons.ArrowRight />
+            </a>
             <a
               href="#modules"
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold px-6 py-3.5 rounded-2xl text-sm transition-all"
@@ -883,188 +898,27 @@ export default function App() {
             </div>
 
             <div className="space-y-3 pt-2">
-              <button
+              <a
+                href="/ReshmeAI-v1.0.0.apk"
+                download="ReshmeAI-v1.0.0.apk"
                 onClick={handleDownloadAndRedirect}
                 className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-4 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
               >
                 <Icons.Download /> {t.downloadSection.btnDownloadMain}
-              </button>
+              </a>
 
-              <button
-                onClick={handleLaunchWebApp}
-                className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3 rounded-2xl text-xs transition-all border border-slate-700 cursor-pointer"
+              <a
+                href="https://sericulture-iota.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-3.5 rounded-2xl text-xs transition-all border border-slate-700 cursor-pointer shadow-md"
               >
-                ⚡ Launch Instant Mobile App in Browser (No Download Needed)
-              </button>
+                ⚡ Launch Instant Mobile App in Browser (https://sericulture-iota.vercel.app/)
+              </a>
             </div>
           </div>
         </div>
       </section>
-
-      {/* ── Interactive Smartphone App Modal ─────────────────────────────── */}
-      {isMobileModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
-          <div className="relative w-full max-w-sm bg-slate-900 border-2 border-emerald-500/50 rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[640px] max-h-[92vh]">
-            
-            {/* Phone Notch & Top Header */}
-            <div className="bg-slate-950 px-4 pt-3 pb-2 flex items-center justify-between border-b border-slate-800 text-xs shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-extrabold text-white text-[11px]">ReshmeAI Mobile</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 text-emerald-400 text-[10px] rounded-lg px-2 py-0.5 font-bold focus:outline-none"
-                >
-                  <option value="en">English</option>
-                  <option value="kn">ಕನ್ನಡ</option>
-                  <option value="hi">हिन्दी</option>
-                  <option value="te">తెలుగు</option>
-                  <option value="ta">தமிழ்</option>
-                  <option value="ml">മലയാളം</option>
-                </select>
-                <button
-                  onClick={() => setIsMobileModalOpen(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Mobile Body Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {mobileTab === 'dashboard' && (
-                <div className="space-y-3 animate-fadeIn text-xs">
-                  <div className="bg-gradient-to-br from-emerald-950/80 to-slate-900 border border-emerald-500/40 p-3.5 rounded-2xl">
-                    <div className="text-[10px] text-emerald-400 font-extrabold uppercase">Live Farm Weather Advisor</div>
-                    <div className="text-sm font-bold text-white mt-0.5">Mandya, Karnataka Profile</div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-500/20">
-                      <div>
-                        <div className="text-xl font-black text-white">28.4°C</div>
-                        <div className="text-[10px] text-slate-400">74% Humidity • Clear</div>
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300">
-                        Optimal Leaf Feeding
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-950 border border-slate-800 p-3 rounded-2xl space-y-2">
-                    <div className="font-bold text-white">Active Farm Batches</div>
-                    <div className="flex items-center justify-between bg-slate-900 p-2 rounded-xl border border-slate-800">
-                      <div>
-                        <div className="font-bold text-emerald-400">Batch #V1-Karnataka</div>
-                        <div className="text-[10px] text-slate-400">5th Instar • 450 DFLs</div>
-                      </div>
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded-lg font-bold">Healthy</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {mobileTab === 'leaf' && (
-                <div className="space-y-3 animate-fadeIn text-xs">
-                  <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center space-y-3">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-2xl">
-                      🍃
-                    </div>
-                    <div className="font-bold text-white">OpenCV AI Leaf Quality Scanner</div>
-                    <button
-                      onClick={() => setScannedResult({
-                        score: 93.7,
-                        grade: 'Excellent Grade',
-                        color: 'Dark Green',
-                        texture: 'Smooth & Succulent',
-                        moisture: '84% High Hydration',
-                        damage: 'None (Healthy Leaf)',
-                        stage: '5th Instar Ready'
-                      })}
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs shadow-md"
-                    >
-                      Run Instant Leaf Analysis
-                    </button>
-                  </div>
-
-                  {scannedResult && (
-                    <div className="bg-gradient-to-br from-slate-900 to-emerald-950 border border-emerald-500/40 p-3.5 rounded-2xl space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-black text-2xl text-emerald-400">{scannedResult.score}/100</span>
-                        <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full font-bold">{scannedResult.grade}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-slate-800">
-                        <div><span className="text-slate-400 block">Color & Texture:</span> <strong className="text-white">{scannedResult.color} • {scannedResult.texture}</strong></div>
-                        <div><span className="text-slate-400 block">Moisture:</span> <strong className="text-cyan-400">{scannedResult.moisture}</strong></div>
-                        <div><span className="text-slate-400 block">Pathology:</span> <strong className="text-emerald-400">{scannedResult.damage}</strong></div>
-                        <div><span className="text-slate-400 block">Silkworm Stage:</span> <strong className="text-amber-400">{scannedResult.stage}</strong></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {mobileTab === 'harvest' && (
-                <div className="space-y-3 animate-fadeIn text-xs">
-                  <div className="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl space-y-2">
-                    <div className="font-bold text-white">Predictive Harvest Scheduler</div>
-                    <div className="text-[10px] text-slate-400">Recalculates 2-3 day peak harvest window based on weather & leaf maturity.</div>
-                    <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
-                      <div className="text-[10px] text-amber-400 font-bold">Recommended Harvest Window</div>
-                      <div className="text-sm font-extrabold text-white">Day 14 - Day 16 (Peak Nutritive Stage)</div>
-                      <div className="text-[10px] text-emerald-400 mt-1">Expected Yield: ~185 kg Fresh Leaves</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {mobileTab === 'copilot' && (
-                <div className="space-y-3 animate-fadeIn text-xs">
-                  <div className="bg-slate-950 border border-slate-800 p-3 rounded-2xl space-y-2">
-                    <div className="font-bold text-emerald-400">ReshmeAI Multi-Lingual Copilot</div>
-                    <div className="bg-slate-900 p-2.5 rounded-xl text-[11px] text-slate-300 leading-relaxed">
-                      🤖 Hello Farmer! How can I assist your silkworm rearing or mulberry harvest schedule today?
-                    </div>
-                    <div className="flex gap-1.5 pt-1">
-                      <input type="text" placeholder="Ask ReshmeAI in Kannada/English..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-[11px] text-white focus:outline-none" />
-                      <button className="bg-emerald-500 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-[11px]">Send</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom Mobile Tab Bar */}
-            <div className="bg-slate-950 border-t border-slate-800 p-2 grid grid-cols-4 gap-1 shrink-0 text-[10px] font-bold text-center">
-              <button
-                onClick={() => setMobileTab('dashboard')}
-                className={`py-1.5 rounded-xl transition-all ${mobileTab === 'dashboard' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:text-white'}`}
-              >
-                🏠 Home
-              </button>
-              <button
-                onClick={() => setMobileTab('leaf')}
-                className={`py-1.5 rounded-xl transition-all ${mobileTab === 'leaf' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:text-white'}`}
-              >
-                🍃 Leaf
-              </button>
-              <button
-                onClick={() => setMobileTab('harvest')}
-                className={`py-1.5 rounded-xl transition-all ${mobileTab === 'harvest' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:text-white'}`}
-              >
-                📅 Harvest
-              </button>
-              <button
-                onClick={() => setMobileTab('copilot')}
-                className={`py-1.5 rounded-xl transition-all ${mobileTab === 'copilot' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:text-white'}`}
-              >
-                🤖 Copilot
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="py-8 border-t border-slate-900 text-center text-xs text-slate-500">
