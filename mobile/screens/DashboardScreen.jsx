@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Calendar, Utensils, TrendingUp, Bot, Sparkles, ChevronRight, Sprout, Layers, Plus } from 'lucide-react';
+import { Camera, Calendar, Utensils, TrendingUp, Bot, Sparkles, ChevronRight, Sprout, Plus, BarChart3 } from 'lucide-react';
 import Card from '../components/Card';
 import StatTile from '../components/StatTile';
 import FarmSetupModal from '../components/FarmSetupModal';
@@ -14,6 +14,7 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
   const [activeFarm, setActiveFarm] = useState(null);
   const [activeBatch, setActiveBatch] = useState(null);
   const [latestLeafScan, setLatestLeafScan] = useState(null);
+  const [totalScansCount, setTotalScansCount] = useState(0);
   const [isFarmModalOpen, setIsFarmModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(user?.location || 'Karnataka, India');
@@ -24,7 +25,7 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
     }
   }, [user]);
 
-  // Fetch real farms & batches for current user
+  // Fetch real farms, batches, and leaf scans for user
   useEffect(() => {
     let isMounted = true;
     farmsAPI.getAll()
@@ -45,7 +46,10 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
           leafAPI.getHistory(farm._id)
             .then(lRes => {
               const scans = lRes.data || [];
-              if (scans.length > 0 && isMounted) setLatestLeafScan(scans[0]);
+              if (isMounted) {
+                setTotalScansCount(scans.length);
+                if (scans.length > 0) setLatestLeafScan(scans[0]);
+              }
             })
             .catch(() => {});
         }
@@ -71,17 +75,30 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
     }
   };
 
-  // Dynamic values calculated from user's active batch or leaf scan
-  const leafScoreText = latestLeafScan ? `${latestLeafScan.score || 85}/100` : '--/100';
-  const leafSuitabilityText = latestLeafScan ? (latestLeafScan.suitability || 'Scanned Leaf') : 'No leaf scans performed yet';
+  // Dynamic values calculated from active leaf scan & active batch
+  const leafScoreVal = latestLeafScan ? latestLeafScan.score || 88 : null;
+  const leafScoreText = leafScoreVal ? `${leafScoreVal}/100` : '--/100';
+  const leafSubtitleText = totalScansCount > 0 
+    ? `${totalScansCount} ${totalScansCount === 1 ? 'Scan' : 'Scans'} Recorded` 
+    : 'No leaf scans performed yet';
   const leafCategoryBadge = latestLeafScan ? (latestLeafScan.category || 'Good') : 'Pending Scan';
 
   const silkwormCount = activeBatch?.silkwormCount || 0;
   const instarName = activeBatch?.currentInstar || 'Not Started';
 
-  // Calculate dynamic feeding based on silkworm count if active batch exists
-  const recommendedTodayKg = silkwormCount > 0 ? (silkwormCount * 0.00091).toFixed(1) : 0;
-  const feedingSubtitle = silkwormCount > 0 ? `4 feedings @ ${(recommendedTodayKg / 4).toFixed(2)} kg` : 'Create batch to optimize feeding';
+  // Calculate dynamic feeding requirement based on active batch silkworm count & instar
+  const instarMultipliers = {
+    '1st Instar': 0.000015,
+    '2nd Instar': 0.00004,
+    '3rd Instar': 0.00018,
+    '4th Instar': 0.00052,
+    '5th Instar': 0.00091
+  };
+  const multiplier = instarMultipliers[instarName] || 0.00091;
+  const recommendedTodayKg = silkwormCount > 0 ? (silkwormCount * multiplier).toFixed(1) : 0;
+  const feedingSubtitle = silkwormCount > 0 
+    ? `4 feedings @ ${(recommendedTodayKg / 4).toFixed(2)} kg` 
+    : 'Create batch to optimize feed';
 
   // Dynamic cocoon yield calculation
   const predictedCocoonKg = silkwormCount > 0 ? (silkwormCount * 0.00213).toFixed(1) : 0;
@@ -161,17 +178,26 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
 
       {/* Primary KPI Grid */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-          AI Decision Highlights
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            AI Decision Highlights
+          </h3>
+          <button
+            onClick={() => onNavigate('analytics')}
+            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>View Charts</span>
+          </button>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {/* Leaf Quality Tile */}
+          {/* Leaf Quality Tile with Scan Count */}
           <StatTile
             title={d.cardLeaf?.title || "Leaf Quality"}
             value={leafScoreText}
-            subtitle={leafSuitabilityText}
+            subtitle={leafSubtitleText}
             badgeText={leafCategoryBadge}
             badgeColor="emerald"
             icon={Camera}
@@ -202,10 +228,10 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
 
           {/* Cocoon Forecast Tile */}
           <StatTile
-            title={d.cardYield?.title || "Cocoon"}
-            value={silkwormCount > 0 ? `${predictedCocoonKg} kg predicted` : '-- kg'}
+            title={d.cardYield?.title || "Cocoon Forecast"}
+            value={silkwormCount > 0 ? `${predictedCocoonKg} kg` : '-- kg'}
             subtitle={silkwormCount > 0 ? 'Shell ratio ~22.5%' : 'Forecast requires batch'}
-            badgeText={silkwormCount > 0 ? 'Optimal' : 'No Batch'}
+            badgeText={silkwormCount > 0 ? 'Predicted' : 'No Batch'}
             badgeColor="indigo"
             icon={TrendingUp}
             onClick={() => onNavigate('predict')}
