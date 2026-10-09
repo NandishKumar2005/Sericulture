@@ -73,8 +73,9 @@ export const farmsAPI = {
 // ─── Harvest Prediction ───────────────────────────────────────────────────────
 
 export const harvestAPI = {
-  predict: (payload) => post('/predictions/harvest', payload),
-  getHistory: (farmId) => get(`/predictions/harvest/${farmId}`),
+  predict:    (payload) => post('/predictions/harvest', payload),
+  getHistory: (farmId)  => get(`/predictions/harvest${farmId ? '/' + farmId : ''}`),
+  getAll:     (farmId)  => get(`/predictions/harvest${farmId ? '/' + farmId : ''}`),
 };
 
 // ─── Batches ──────────────────────────────────────────────────────────────────
@@ -104,7 +105,7 @@ export const feedingAPI = {
 export const leafAPI = {
   analyse:    (farmId, imageBase64) => post('/leaf-analysis/analyse', { farmId, image: imageBase64 }),
   scan:       (farmId, payload)     => post('/leaf-analysis/analyse', { farmId, ...(typeof payload === 'object' ? payload : { score: payload }) }),
-  getHistory: (farmId)             => get(`/leaf-analysis/history/${farmId}`),
+  getHistory: (farmId)             => get(`/leaf-analysis/history${farmId ? '/' + farmId : ''}`),
 };
 
 // ─── Production Prediction ───────────────────────────────────────────────────
