@@ -7,7 +7,7 @@ import BatchSetupModal from '../components/BatchSetupModal';
 import WeatherWidget from '../components/WeatherWidget';
 import { farmsAPI, batchesAPI, leafAPI } from '../services/api';
 
-export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdate }) {
+export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdate, isDarkMode = true }) {
   const d = t?.dashboard || {};
 
   const [farms, setFarms] = useState([]);
@@ -95,7 +95,6 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
   };
   const multiplier = instarMultipliers[instarName] || 0.00091;
   const recommendedTodayKg = (silkwormCount * multiplier).toFixed(1);
-  const feedingSubtitle = `4 feeds @ ${(recommendedTodayKg / 4).toFixed(2)} kg`;
 
   const predictedCocoonKg = (silkwormCount * 0.00213).toFixed(1);
   const predictedSilkKg = (predictedCocoonKg * 0.204).toFixed(1);
@@ -106,15 +105,17 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
       {/* Farm & Batch Selector / Creator Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
-          <span className="text-xs font-bold text-slate-400">Farm:</span>
-          <span className="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+          <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Farm:</span>
+          <span className="text-xs font-extrabold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
             {activeFarm ? activeFarm.farmName : (user?.farmName || 'Green Field Farm')}
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => setIsFarmModalOpen(true)}
-            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
+            className={`flex items-center gap-1 border text-emerald-500 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+              isDarkMode ? 'bg-slate-900 hover:bg-slate-800 border-slate-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+            }`}
           >
             <Plus className="w-3.5 h-3.5" /> Farm
           </button>
@@ -126,7 +127,9 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
                 setIsBatchModalOpen(true);
               }
             }}
-            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-400 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
+            className={`flex items-center gap-1 border text-cyan-500 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+              isDarkMode ? 'bg-slate-900 hover:bg-slate-800 border-slate-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+            }`}
           >
             <Plus className="w-3.5 h-3.5" /> Batch
           </button>
@@ -139,6 +142,7 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
         onLocationChange={handleLocationChange}
         lang={lang}
         t={t}
+        isDarkMode={isDarkMode}
       />
 
       {/* Active Silkworm Batch Status Card */}

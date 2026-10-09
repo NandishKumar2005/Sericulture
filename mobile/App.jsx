@@ -141,14 +141,15 @@ export default function App() {
             t={t}
             lang={lang}
             onUserUpdate={handleUpdateUser}
+            isDarkMode={isDarkMode}
           />
         )}
-        {currentScreen === 'harvest' && <HarvestSchedulerScreen t={t} />}
-        {currentScreen === 'leaf' && <LeafQualityScreen t={t} />}
-        {currentScreen === 'feeding' && <FeedingOptimizerScreen t={t} />}
-        {currentScreen === 'predict' && <ProductionPredictionScreen t={t} />}
-        {currentScreen === 'analytics' && <AnalyticsScreen t={t} />}
-        {currentScreen === 'copilot' && <CopilotScreen user={user} summary={null} />}
+        {currentScreen === 'harvest' && <HarvestSchedulerScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'leaf' && <LeafQualityScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'feeding' && <FeedingOptimizerScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'predict' && <ProductionPredictionScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'analytics' && <AnalyticsScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'copilot' && <CopilotScreen user={user} summary={null} t={t} isDarkMode={isDarkMode} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -156,6 +157,7 @@ export default function App() {
         activeTab={currentScreen}
         onTabChange={(tabId) => setCurrentScreen(tabId)}
         t={t}
+        isDarkMode={isDarkMode}
       />
 
       {/* Profile Modal */}
