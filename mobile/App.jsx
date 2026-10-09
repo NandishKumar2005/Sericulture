@@ -112,7 +112,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen relative max-w-md mx-auto shadow-2xl overflow-hidden flex flex-col font-sans transition-colors ${
-      isDarkMode ? 'bg-slate-950 text-slate-100 border-x border-slate-800/80' : 'bg-slate-50 text-slate-900 border-x border-slate-200'
+      isDarkMode ? 'bg-slate-950 text-slate-100 border-x border-slate-800/80' : 'light-mode bg-slate-50 text-slate-900 border-x border-slate-200'
     }`}>
       
       {/* Dynamic Header with Day/Night Theme toggle */}

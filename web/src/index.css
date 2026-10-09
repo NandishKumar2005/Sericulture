@@ -18,3 +18,36 @@ body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   overflow-x: hidden;
 }
+
+/* Light Mode Overrides for Public Dashboard */
+.light-mode {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light-mode nav {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.light-mode .text-white {
+  color: #0f172a !important;
+}
+
+.light-mode .text-slate-300,
+.light-mode .text-slate-400,
+.light-mode .text-slate-500 {
+  color: #334155 !important;
+}
+
+.light-mode .bg-slate-900,
+.light-mode .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-mode .bg-slate-900\/50,
+.light-mode .bg-slate-950\/50 {
+  background-color: #f1f5f9 !important;
+}

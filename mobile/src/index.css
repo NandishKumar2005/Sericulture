@@ -21,7 +21,58 @@
   }
 }
 
-/* Custom scrollbar for mobile container */
+/* Light Mode Overrides for Crystal Clear Readability */
+.light-mode {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light-mode .glass-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
+}
+
+.light-mode .glass-card-hover:hover {
+  background: #ffffff !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+.light-mode .text-white {
+  color: #0f172a !important;
+}
+
+.light-mode .text-slate-100,
+.light-mode .text-slate-200,
+.light-mode .text-slate-300 {
+  color: #1e293b !important;
+}
+
+.light-mode .text-slate-400,
+.light-mode .text-slate-500 {
+  color: #475569 !important;
+}
+
+.light-mode .bg-slate-900,
+.light-mode .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode .bg-slate-900\/50,
+.light-mode .bg-slate-950\/50,
+.light-mode .bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+.light-mode input,
+.light-mode select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

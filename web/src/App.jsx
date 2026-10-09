@@ -611,7 +611,7 @@ export default function App() {
     <div className={`min-h-screen transition-colors duration-300 ${
       isDarkMode 
         ? 'bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950' 
-        : 'bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white'
+        : 'light-mode bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white'
     }`}>
       
       {/* ── Top Navigation Bar ─────────────────────────────────────────── */}

@@ -6,6 +6,8 @@ const { getWeatherForLocation } = require('../services/weatherService');
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
+const mongoose = require('mongoose');
+
 /**
  * POST /api/predictions/harvest
  */
@@ -25,15 +27,13 @@ exports.predictHarvest = async (req, res) => {
       season,
     } = req.body;
 
-    if (!farmId) {
-      return res.status(400).json({ success: false, message: 'farmId is required' });
-    }
-
     let farm = null;
-    try {
-      farm = await Farm.findOne({ _id: farmId, userId: req.user?.id });
-    } catch {
-      // Graceful fallback
+    if (farmId && mongoose.Types.ObjectId.isValid(farmId)) {
+      try {
+        farm = await Farm.findOne({ _id: farmId, userId: req.user?.id });
+      } catch {
+        // Graceful fallback
+      }
     }
 
     const acres = Number(area_acres || farm?.acres || 2.5);
