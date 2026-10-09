@@ -2,10 +2,7 @@
  * Sericulture API Service
  * =======================
  * Centralised HTTP client for all backend calls.
- *
  * Token is read from localStorage (set by AuthScreen on login).
- * BASE_URL defaults to localhost for development; update via
- * VITE_API_URL env variable for production.
  */
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -24,15 +21,20 @@ async function request(method, path, body = null) {
   const config = { method, headers };
   if (body) config.body = JSON.stringify(body);
 
-  const response = await fetch(`${BASE_URL}${path}`, config);
-  const data = await response.json();
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, config);
+    const data = await response.json();
 
-  if (!response.ok) {
-    const message = data?.message || data?.error || `HTTP ${response.status}`;
-    throw new Error(message);
+    if (!response.ok) {
+      const message = data?.message || data?.error || `HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
+    return data;
+  } catch (err) {
+    console.warn(`API ${method} ${path} error:`, err.message);
+    throw err;
   }
-
-  return data;
 }
 
 const get  = (path)        => request('GET',  path);
@@ -78,7 +80,7 @@ export const harvestAPI = {
 // ─── Batches ──────────────────────────────────────────────────────────────────
 
 export const batchesAPI = {
-  getAll:  (farmId)  => get(`/batches?farmId=${farmId}`),
+  getAll:  (farmId)  => get(`/batches${farmId ? '?farmId=' + farmId : ''}`),
   create:  (payload) => post('/batches', payload),
 };
 
@@ -94,25 +96,28 @@ export const feedingAPI = {
 
   getByBatch: (batchId) => get(`/feeding/${batchId}`),
   record:     (payload) => post('/feeding', payload),
+  log:        (batchId, payload) => post('/feeding', { batchId, ...(typeof payload === 'object' ? payload : { quantityKg: payload }) }),
 };
 
 // ─── Leaf Analysis ────────────────────────────────────────────────────────────
 
 export const leafAPI = {
   analyse:    (farmId, imageBase64) => post('/leaf-analysis/analyse', { farmId, image: imageBase64 }),
+  scan:       (farmId, payload)     => post('/leaf-analysis/analyse', { farmId, ...(typeof payload === 'object' ? payload : { score: payload }) }),
   getHistory: (farmId)             => get(`/leaf-analysis/history/${farmId}`),
 };
 
 // ─── Production Prediction ───────────────────────────────────────────────────
 
 export const productionAPI = {
-  predictCocoonSilk: (payload) => post('/predictions/cocoon-silk', payload),
-  getByBatch: (batchId) => get(`/predictions/${batchId}`),
+  predict:           (batchId, leafQualityScore) => post('/predictions/cocoon-silk', { batchId, leafQualityScore }),
+  predictCocoonSilk: (payload)                   => post('/predictions/cocoon-silk', payload),
+  getByBatch:        (batchId)                   => get(`/predictions/${batchId}`),
 };
 
 // ─── Copilot API ─────────────────────────────────────────────────────────────
 
 export const copilotAPI = {
-  ask: (payload) => post('/copilot', payload),
+  ask: (payload) => post('/copilot', typeof payload === 'object' ? payload : { question: payload }),
   getConversations: () => get('/copilot/conversations'),
 };
