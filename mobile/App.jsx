@@ -18,7 +18,8 @@ import { notificationsAPI } from './services/api';
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [user, setUser] = useState(null);
-  const [lang, setLang] = useState('en'); // 'en' or 'kn'
+  const [lang, setLang] = useState('en');
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Modals state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -66,6 +67,10 @@ export default function App() {
     setUser(updatedUserData);
   };
 
+  const toggleTheme = () => {
+    setIsDarkMode(prev => !prev);
+  };
+
   const screenTitles = {
     dashboard: lang === 'kn' ? 'ತೋಟದ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್' : 'Farm Dashboard',
     harvest: lang === 'kn' ? 'ಕೊಯ್ಲು ವೇಳಾಪಟ್ಟಿ' : 'Harvest Scheduler',
@@ -106,9 +111,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 relative max-w-md mx-auto shadow-2xl border-x border-slate-800/80 overflow-hidden flex flex-col font-sans">
+    <div className={`min-h-screen relative max-w-md mx-auto shadow-2xl overflow-hidden flex flex-col font-sans transition-colors ${
+      isDarkMode ? 'bg-slate-950 text-slate-100 border-x border-slate-800/80' : 'bg-slate-50 text-slate-900 border-x border-slate-200'
+    }`}>
       
-      {/* Dynamic Header with working Profile & Notification handlers */}
+      {/* Dynamic Header with Day/Night Theme toggle */}
       <Header
         title={screenTitles[currentScreen] || (lang === 'kn' ? 'ರೇಷ್ಮೆ' : 'Reshme')}
         showBack={currentScreen !== 'dashboard'}
@@ -121,6 +128,8 @@ export default function App() {
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         unreadCount={unreadCount}
+        isDarkMode={isDarkMode}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Screen Content */}
