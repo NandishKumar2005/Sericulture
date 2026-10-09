@@ -25,9 +25,26 @@ const userSchema = new mongoose.Schema({
   location: {
     type: mongoose.Schema.Types.Mixed,
     default: ""
+  },
+  farmName: {
+    type: String,
+    default: ""
+  },
+  acreage: {
+    type: String,
+    default: ""
+  },
+  mulberryVariety: {
+    type: String,
+    default: ""
+  },
+  silkwormBreed: {
+    type: String,
+    default: ""
   }
 }, {
   timestamps: true
 });
 
 module.exports = mongoose.model('User', userSchema);
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, MapPin, Phone, Mail, ShieldCheck, Globe, Save, LogOut, Check } from 'lucide-react';
 import Card from './Card';
 import { authAPI } from '../services/api';
@@ -17,15 +17,30 @@ export default function ProfileModal({
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || 'Ramesh Kumar',
-    phone: user?.phone || '+91 98450 12345',
-    email: user?.email || 'ramesh.farmer@reshme.ai',
-    location: user?.location || 'Kolar, Karnataka',
-    farmName: user?.farmName || 'Green Silk Orchards',
-    acreage: user?.acreage || '3.5 Acres',
-    mulberryVariety: user?.mulberryVariety || 'V1 Viswa High Yield',
-    silkwormBreed: user?.silkwormBreed || 'FC1 x FC2 Bivoltine Hybrid'
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    location: user?.location || '',
+    farmName: user?.farmName || '',
+    acreage: user?.acreage || '',
+    mulberryVariety: user?.mulberryVariety || '',
+    silkwormBreed: user?.silkwormBreed || ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        phone: user.phone || '',
+        email: user.email || '',
+        location: user.location || '',
+        farmName: user.farmName || '',
+        acreage: user.acreage || '',
+        mulberryVariety: user.mulberryVariety || '',
+        silkwormBreed: user.silkwormBreed || ''
+      });
+    }
+  }, [user]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -33,7 +48,7 @@ export default function ProfileModal({
   const languages = [
     { code: 'en', name: 'English', native: 'English' },
     { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ' },
-    { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
+    { code: 'hi', name: 'Hindi', native: 'ಹಿन्दी' },
     { code: 'te', name: 'Telugu', native: 'తెలుగు' },
     { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
     { code: 'ml', name: 'Malayalam', native: 'മലയാളം' },
@@ -83,12 +98,12 @@ export default function ProfileModal({
     return labels[lang]?.[key] || fallback;
   };
 
-  const initials = formData.name
+  const initials = (formData.name || 'Reshme Farmer')
     .split(' ')
     .filter(Boolean)
     .map(p => p[0].toUpperCase())
     .slice(0, 2)
-    .join('') || 'FP';
+    .join('') || 'RF';
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
@@ -102,7 +117,7 @@ export default function ProfileModal({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">{getLabel('title', 'Farmer Profile')}</h3>
-              <p className="text-[10px] text-slate-400">ReshmeAI Certified Farmer ID #8492</p>
+              <p className="text-[10px] text-slate-400">ReshmeAI Registered Farmer</p>
             </div>
           </div>
           <button
@@ -121,14 +136,14 @@ export default function ProfileModal({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <h4 className="text-base font-extrabold text-white truncate">{formData.name}</h4>
+                <h4 className="text-base font-extrabold text-white truncate">{formData.name || 'Farmer'}</h4>
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               </div>
               <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{formData.location}</span>
+                <span className="truncate">{formData.location || 'Not set'}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">{formData.farmName} • {formData.acreage}</p>
+              <p className="text-[11px] text-slate-400 mt-1">{formData.farmName || 'No Farm'} {formData.acreage ? `• ${formData.acreage}` : ''}</p>
             </div>
           </div>
 
@@ -167,31 +182,48 @@ export default function ProfileModal({
                 <label className="text-[10px] font-bold text-slate-400 uppercase">Full Name</label>
                 <input
                   type="text"
+                  required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Full Name"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Phone</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Phone Number</label>
                   <input
-                    type="text"
+                    type="tel"
+                    required
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="Phone number"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Location / District</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Email ID</label>
                   <input
-                    type="text"
-                    value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Email ID"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Location / District</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={e => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="District / Village"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
+                />
               </div>
 
               <div>
@@ -200,6 +232,7 @@ export default function ProfileModal({
                   type="text"
                   value={formData.farmName}
                   onChange={e => setFormData({ ...formData, farmName: e.target.value })}
+                  placeholder="e.g. Silk Plot 1"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
                 />
               </div>
@@ -211,6 +244,7 @@ export default function ProfileModal({
                     type="text"
                     value={formData.mulberryVariety}
                     onChange={e => setFormData({ ...formData, mulberryVariety: e.target.value })}
+                    placeholder="e.g. V1, S36"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
                   />
                 </div>
@@ -220,6 +254,7 @@ export default function ProfileModal({
                     type="text"
                     value={formData.silkwormBreed}
                     onChange={e => setFormData({ ...formData, silkwormBreed: e.target.value })}
+                    placeholder="e.g. Bivoltine"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 mt-1"
                   />
                 </div>
@@ -229,7 +264,7 @@ export default function ProfileModal({
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   {saveSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                   <span>{saveSuccess ? 'Saved!' : getLabel('save', 'Save Profile')}</span>
@@ -237,7 +272,7 @@ export default function ProfileModal({
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs"
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs cursor-pointer"
                 >
                   {getLabel('cancel', 'Cancel')}
                 </button>
@@ -250,7 +285,7 @@ export default function ProfileModal({
                   <span className="text-xs font-bold text-slate-400">Account Details</span>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="text-xs font-bold text-emerald-400 hover:underline"
+                    className="text-xs font-bold text-emerald-400 hover:underline cursor-pointer"
                   >
                     {getLabel('edit', 'Edit Profile')}
                   </button>
@@ -259,19 +294,19 @@ export default function ProfileModal({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-[10px] text-slate-500 block">Phone</span>
-                    <span className="text-slate-200 font-medium">{formData.phone}</span>
+                    <span className="text-slate-200 font-medium">{formData.phone || 'Not set'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 block">Email</span>
-                    <span className="text-slate-200 font-medium truncate block">{formData.email}</span>
+                    <span className="text-slate-200 font-medium truncate block">{formData.email || 'Not set'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 block">Mulberry Variety</span>
-                    <span className="text-slate-200 font-medium">{formData.mulberryVariety}</span>
+                    <span className="text-slate-200 font-medium">{formData.mulberryVariety || 'Not set'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 block">Silkworm Breed</span>
-                    <span className="text-slate-200 font-medium">{formData.silkwormBreed}</span>
+                    <span className="text-slate-200 font-medium">{formData.silkwormBreed || 'Not set'}</span>
                   </div>
                 </div>
               </div>
@@ -285,7 +320,7 @@ export default function ProfileModal({
                 onClose();
                 if (onLogout) onLogout();
               }}
-              className="w-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold py-2.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all"
+              className="w-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold py-2.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>{getLabel('logout', 'Sign Out of Account')}</span>

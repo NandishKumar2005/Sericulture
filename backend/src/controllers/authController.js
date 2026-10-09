@@ -7,24 +7,24 @@ const { JWT_SECRET } = require('../middleware/auth');
 // @route POST /api/auth/register
 exports.register = async (req, res) => {
   try {
-    const { name, email, phone, password, location } = req.body;
+    const { name, email, phone, password, location, farmName, acreage, mulberryVariety, silkwormBreed } = req.body;
 
-    if (!name || (!email && !phone) || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide name, phone/email, and password' });
+    if (!name || !phone || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide full name, phone number, email ID, and password' });
     }
 
-    const primaryPhone = phone ? phone.trim() : '';
-    const primaryEmail = email ? email.trim().toLowerCase() : `${primaryPhone.replace(/[^0-9a-zA-Z]/g, '') || Date.now()}@sericulture.org`;
+    const primaryPhone = phone.trim();
+    const primaryEmail = email.trim().toLowerCase();
 
     const existingUser = await User.findOne({
       $or: [
         { email: primaryEmail },
-        ...(primaryPhone ? [{ phone: primaryPhone }] : [])
+        { phone: primaryPhone }
       ]
     });
 
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'User with this phone or email already exists' });
+      return res.status(400).json({ success: false, message: 'User with this phone number or email ID already exists' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -33,9 +33,13 @@ exports.register = async (req, res) => {
     const user = await User.create({
       name: name.trim(),
       email: primaryEmail,
-      phone: primaryPhone || primaryEmail,
+      phone: primaryPhone,
       passwordHash,
-      location: location || ''
+      location: location || '',
+      farmName: farmName || '',
+      acreage: acreage || '',
+      mulberryVariety: mulberryVariety || '',
+      silkwormBreed: silkwormBreed || ''
     });
 
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
@@ -49,7 +53,11 @@ exports.register = async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        location: user.location
+        location: user.location,
+        farmName: user.farmName,
+        acreage: user.acreage,
+        mulberryVariety: user.mulberryVariety,
+        silkwormBreed: user.silkwormBreed
       }
     });
   } catch (error) {
@@ -65,19 +73,13 @@ exports.login = async (req, res) => {
     const identifier = (email || phone || '').trim().toLowerCase();
 
     if (!identifier || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide phone/email and password' });
+      return res.status(400).json({ success: false, message: 'Please provide phone number/email ID and password' });
     }
 
     const conditions = [];
     if (identifier) {
       conditions.push({ email: identifier });
       conditions.push({ phone: identifier });
-    }
-    if (req.body.phone && typeof req.body.phone === 'string') {
-      conditions.push({ phone: req.body.phone.trim() });
-    }
-    if (req.body.email && typeof req.body.email === 'string') {
-      conditions.push({ email: req.body.email.trim().toLowerCase() });
     }
 
     const user = await User.findOne({ $or: conditions });
@@ -102,7 +104,11 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        location: user.location
+        location: user.location,
+        farmName: user.farmName || '',
+        acreage: user.acreage || '',
+        mulberryVariety: user.mulberryVariety || '',
+        silkwormBreed: user.silkwormBreed || ''
       }
     });
   } catch (error) {
@@ -115,7 +121,7 @@ exports.login = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
-    const { name, phone, location } = req.body;
+    const { name, phone, email, location, farmName, acreage, mulberryVariety, silkwormBreed } = req.body;
 
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -128,7 +134,12 @@ exports.updateProfile = async (req, res) => {
 
     if (name) user.name = name.trim();
     if (phone) user.phone = phone.trim();
+    if (email) user.email = email.trim().toLowerCase();
     if (location !== undefined) user.location = location;
+    if (farmName !== undefined) user.farmName = farmName;
+    if (acreage !== undefined) user.acreage = acreage;
+    if (mulberryVariety !== undefined) user.mulberryVariety = mulberryVariety;
+    if (silkwormBreed !== undefined) user.silkwormBreed = silkwormBreed;
 
     await user.save();
 
@@ -140,10 +151,15 @@ exports.updateProfile = async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        location: user.location
+        location: user.location,
+        farmName: user.farmName,
+        acreage: user.acreage,
+        mulberryVariety: user.mulberryVariety,
+        silkwormBreed: user.silkwormBreed
       }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+

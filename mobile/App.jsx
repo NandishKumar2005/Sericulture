@@ -12,9 +12,8 @@ import Header from './components/Header';
 import NavBar from './components/NavBar';
 import ProfileModal from './components/ProfileModal';
 import NotificationDrawer from './components/NotificationDrawer';
-import { MOCK_DATA } from './constants/mockData';
 import { MOBILE_TRANSLATIONS } from './constants/translations';
-import { Bell, Calendar, X, ChevronRight } from 'lucide-react';
+import { notificationsAPI } from './services/api';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
@@ -24,14 +23,7 @@ export default function App() {
   // Modals state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
-  // Popup Toast Notification (e.g. Harvest Time popup alert)
-  const [toastNotification, setToastNotification] = useState({
-    show: false,
-    title: 'Harvest Alert: Spinning Phase',
-    message: 'This is the time to harvest! Batch Sep-A reached 5th Instar Day 7.',
-    actionScreen: 'harvest'
-  });
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const t = MOBILE_TRANSLATIONS[lang] || MOBILE_TRANSLATIONS.en;
 
@@ -48,22 +40,18 @@ export default function App() {
     }
   }, []);
 
-  // Show a popup harvest alert after login/splash when entering dashboard
+  // Fetch unread notifications count when user logged in
   useEffect(() => {
-    if (currentScreen === 'dashboard') {
-      const timer = setTimeout(() => {
-        setToastNotification({
-          show: true,
-          title: lang === 'kn' ? 'ಕೊಯ್ಲು ಮುನ್ನೆಚ್ಚರಿಕೆ: ಗೂಡು ಕೊಯ್ಲಿನ ಸಮಯ!' : 'Harvest Alert: Spinning Phase',
-          message: lang === 'kn'
-            ? 'ಇದು ಗೂಡು ಕೊಯ್ಲು ಮಾಡುವ ಅಥವಾ ಚಂದ್ರಿಕೆಗಳ ಮೇಲೆ ಹುಳುಗಳನ್ನು ಹರಡುವ ಸರಿಯಾದ ಸಮಯ!'
-            : 'This is the time to harvest! Batch Sep-A has reached 5th Instar Spinning Stage.',
-          actionScreen: 'harvest'
-        });
-      }, 1200);
-      return () => clearTimeout(timer);
+    if (user) {
+      notificationsAPI.getAll(user.location)
+        .then(res => {
+          const list = res.data || [];
+          const unread = list.filter(n => !n.read).length;
+          setUnreadCount(unread);
+        })
+        .catch(() => setUnreadCount(0));
     }
-  }, [currentScreen, lang]);
+  }, [user, currentScreen]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -132,46 +120,8 @@ export default function App() {
         t={t}
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
-        unreadCount={2}
+        unreadCount={unreadCount}
       />
-
-      {/* Floating Sericulture Notification Toast Popup */}
-      {toastNotification.show && (
-        <div className="mx-4 mt-3 bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-950/40 border border-amber-500/40 p-3.5 rounded-2xl shadow-xl flex items-start justify-between gap-3 animate-slideDown z-30">
-          <div className="flex items-start gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-              <Calendar className="w-4.5 h-4.5 animate-pulse" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-amber-400">{toastNotification.title}</span>
-                <span className="text-[9px] bg-amber-500/20 text-amber-300 font-extrabold px-1.5 py-0.5 rounded-md uppercase">NOW</span>
-              </div>
-              <p className="text-xs text-slate-200 mt-0.5 leading-snug">{toastNotification.message}</p>
-              
-              <button
-                onClick={() => {
-                  setToastNotification({ ...toastNotification, show: false });
-                  if (toastNotification.actionScreen) {
-                    setCurrentScreen(toastNotification.actionScreen);
-                  }
-                }}
-                className="mt-2 text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-lg border border-amber-500/30"
-              >
-                <span>{lang === 'kn' ? 'ಕೊಯ್ಲು ವೇಳಾಪಟ್ಟಿ ವೀಕ್ಷಿಸಿ' : 'View Harvest Schedule'}</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setToastNotification({ ...toastNotification, show: false })}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Main Screen Content */}
       <main className="flex-1 overflow-y-auto">
@@ -189,7 +139,7 @@ export default function App() {
         {currentScreen === 'feeding' && <FeedingOptimizerScreen t={t} />}
         {currentScreen === 'predict' && <ProductionPredictionScreen t={t} />}
         {currentScreen === 'analytics' && <AnalyticsScreen t={t} />}
-        {currentScreen === 'copilot' && <CopilotScreen user={user} summary={MOCK_DATA.summary} />}
+        {currentScreen === 'copilot' && <CopilotScreen user={user} summary={null} />}
       </main>
 
       {/* Bottom Navigation */}
@@ -215,7 +165,7 @@ export default function App() {
       <NotificationDrawer
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
-        location={user?.location || 'Kolar, Karnataka'}
+        location={user?.location || 'Karnataka, India'}
         onNavigate={(screen) => setCurrentScreen(screen)}
         lang={lang}
         t={t}

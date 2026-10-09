@@ -152,7 +152,7 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {isRegister && (
             <div>
-              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Full Name</label>
+              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Full Name / ಪೂರ್ಣ ಹೆಸರು</label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
@@ -167,20 +167,54 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
             </div>
           )}
 
-          <div>
-            <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.phoneLabel || 'Phone Number / Email'}</label>
-            <div className="relative">
-              <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="e.g. 9876543210 or farmer@gmail.com"
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-              />
+          {isRegister ? (
+            <>
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Phone Number / ದೂರವಾಣಿ ಸಂಖ್ಯೆ</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="e.g. 9876543210"
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Email ID / ಇಮೇಲ್ ಐಡಿ</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="e.g. farmer@gmail.com"
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Mobile Number or Email ID</label>
+              <div className="relative">
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  required
+                  value={formData.phone || formData.email}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value, email: e.target.value })}
+                  placeholder="Enter mobile number or email ID"
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.passwordLabel || 'Password'}</label>

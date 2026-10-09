@@ -5,19 +5,18 @@ import StatTile from '../components/StatTile';
 import FarmSetupModal from '../components/FarmSetupModal';
 import BatchSetupModal from '../components/BatchSetupModal';
 import WeatherWidget from '../components/WeatherWidget';
-import { farmsAPI, batchesAPI } from '../services/api';
-import { MOCK_DATA } from '../constants/mockData';
+import { farmsAPI, batchesAPI, leafAPI } from '../services/api';
 
 export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdate }) {
-  const { leafQuality, harvest, feeding, cocoon, silk } = MOCK_DATA.summary;
   const d = t?.dashboard || {};
 
   const [farms, setFarms] = useState([]);
   const [activeFarm, setActiveFarm] = useState(null);
   const [activeBatch, setActiveBatch] = useState(null);
+  const [latestLeafScan, setLatestLeafScan] = useState(null);
   const [isFarmModalOpen, setIsFarmModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(user?.location || 'Kolar, Karnataka');
+  const [currentLocation, setCurrentLocation] = useState(user?.location || 'Karnataka, India');
 
   useEffect(() => {
     if (user?.location) {
@@ -25,24 +24,35 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
     }
   }, [user]);
 
-  // Load farms & active batch on mount
+  // Fetch real farms & batches for current user
   useEffect(() => {
+    let isMounted = true;
     farmsAPI.getAll()
       .then(res => {
         const list = res.data || [];
-        setFarms(list);
+        if (isMounted) setFarms(list);
         if (list.length > 0) {
           const farm = list[0];
-          setActiveFarm(farm);
+          if (isMounted) setActiveFarm(farm);
+
           batchesAPI.getAll(farm._id)
             .then(bRes => {
-              const active = (bRes.data || []).find(b => b.status === 'active');
-              if (active) setActiveBatch(active);
+              const active = (bRes.data || []).find(b => b.status === 'active') || bRes.data?.[0];
+              if (active && isMounted) setActiveBatch(active);
+            })
+            .catch(() => {});
+
+          leafAPI.getHistory(farm._id)
+            .then(lRes => {
+              const scans = lRes.data || [];
+              if (scans.length > 0 && isMounted) setLatestLeafScan(scans[0]);
             })
             .catch(() => {});
         }
       })
       .catch(() => {});
+
+    return () => { isMounted = false; };
   }, []);
 
   const handleFarmCreated = (newFarm) => {
@@ -61,27 +71,49 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
     }
   };
 
+  // Dynamic values calculated from user's active batch or leaf scan
+  const leafScoreText = latestLeafScan ? `${latestLeafScan.score || 85}/100` : '--/100';
+  const leafSuitabilityText = latestLeafScan ? (latestLeafScan.suitability || 'Scanned Leaf') : 'No leaf scans performed yet';
+  const leafCategoryBadge = latestLeafScan ? (latestLeafScan.category || 'Good') : 'Pending Scan';
+
+  const silkwormCount = activeBatch?.silkwormCount || 0;
+  const instarName = activeBatch?.currentInstar || 'Not Started';
+
+  // Calculate dynamic feeding based on silkworm count if active batch exists
+  const recommendedTodayKg = silkwormCount > 0 ? (silkwormCount * 0.00091).toFixed(1) : 0;
+  const feedingSubtitle = silkwormCount > 0 ? `4 feedings @ ${(recommendedTodayKg / 4).toFixed(2)} kg` : 'Create batch to optimize feeding';
+
+  // Dynamic cocoon yield calculation
+  const predictedCocoonKg = silkwormCount > 0 ? (silkwormCount * 0.00213).toFixed(1) : 0;
+  const predictedSilkKg = silkwormCount > 0 ? (predictedCocoonKg * 0.204).toFixed(1) : 0;
+
   return (
     <div className="p-4 pb-24 space-y-5 max-w-md mx-auto animate-fadeIn">
 
-      {/* Farm & Batch Action Header */}
+      {/* Farm & Batch Selector / Creator Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
           <span className="text-xs font-bold text-slate-400">Farm:</span>
           <span className="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-            {activeFarm ? activeFarm.farmName : (user?.farmName || 'Green Silk Orchards')}
+            {activeFarm ? activeFarm.farmName : (user?.farmName || 'No Farm Added')}
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => setIsFarmModalOpen(true)}
-            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all"
+            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> Farm
           </button>
           <button
-            onClick={() => setIsBatchModalOpen(true)}
-            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-400 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all"
+            onClick={() => {
+              if (!activeFarm) {
+                setIsFarmModalOpen(true);
+              } else {
+                setIsBatchModalOpen(true);
+              }
+            }}
+            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-400 text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> Batch
           </button>
@@ -100,26 +132,26 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
       <Card className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border-emerald-500/30">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span className={`w-2.5 h-2.5 rounded-full ${activeBatch ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`}></span>
             <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Active Batch</span>
           </div>
           <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            {activeBatch ? activeBatch.currentInstar : feeding.batchInstar}
+            {instarName}
           </span>
         </div>
 
         <div className="flex items-baseline justify-between">
           <div>
             <h2 className="text-xl font-extrabold text-white tracking-tight">
-              {activeBatch ? activeBatch.batchName : 'Batch Sep-A'}
+              {activeBatch ? activeBatch.batchName : 'No Active Batch'}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              {(activeBatch ? activeBatch.silkwormCount : feeding.silkwormCount).toLocaleString()} Silkworms
+              {activeBatch ? `${silkwormCount.toLocaleString()} Silkworms` : 'Click + Batch to start a rearing cycle'}
             </p>
           </div>
           <button 
             onClick={() => onNavigate('feeding')}
-            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700"
+            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 cursor-pointer"
           >
             <span>{d.cardFeeding?.btn || 'Log Feed'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -138,9 +170,9 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
           {/* Leaf Quality Tile */}
           <StatTile
             title={d.cardLeaf?.title || "Leaf Quality"}
-            value={`${leafQuality.score}/100`}
-            subtitle={leafQuality.suitability}
-            badgeText={leafQuality.category}
+            value={leafScoreText}
+            subtitle={leafSuitabilityText}
+            badgeText={leafCategoryBadge}
             badgeColor="emerald"
             icon={Camera}
             onClick={() => onNavigate('leaf')}
@@ -149,9 +181,9 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
           {/* Harvest Scheduler Tile */}
           <StatTile
             title={d.cardHarvest?.title || "Harvest"}
-            value={harvest.status}
-            subtitle={`${harvest.expectedYieldKg} kg yield`}
-            badgeText={harvest.confidence}
+            value={activeBatch ? 'Active Cycle' : 'Not Scheduled'}
+            subtitle={activeBatch ? `Rearing ${instarName}` : 'Create batch to calculate window'}
+            badgeText={activeBatch ? 'Tracking' : 'Pending Setup'}
             badgeColor="amber"
             icon={Calendar}
             onClick={() => onNavigate('harvest')}
@@ -160,9 +192,9 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
           {/* Feeding Optimizer Tile */}
           <StatTile
             title={d.cardFeeding?.title || "Feeding"}
-            value={`${feeding.recommendedTodayKg} kg today`}
-            subtitle={`${feeding.feedingsPerDay} feedings @ 4.55 kg`}
-            badgeText="Optimized"
+            value={silkwormCount > 0 ? `${recommendedTodayKg} kg today` : '-- kg'}
+            subtitle={feedingSubtitle}
+            badgeText={silkwormCount > 0 ? 'Optimized' : 'Pending Batch'}
             badgeColor="cyan"
             icon={Utensils}
             onClick={() => onNavigate('feeding')}
@@ -171,9 +203,9 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
           {/* Cocoon Forecast Tile */}
           <StatTile
             title={d.cardYield?.title || "Cocoon"}
-            value={`${cocoon.predictedYieldKg} kg predicted`}
-            subtitle={`Shell ratio ${cocoon.shellRatioPct}%`}
-            badgeText={cocoon.qualityGrade}
+            value={silkwormCount > 0 ? `${predictedCocoonKg} kg predicted` : '-- kg'}
+            subtitle={silkwormCount > 0 ? 'Shell ratio ~22.5%' : 'Forecast requires batch'}
+            badgeText={silkwormCount > 0 ? 'Optimal' : 'No Batch'}
             badgeColor="indigo"
             icon={TrendingUp}
             onClick={() => onNavigate('predict')}
@@ -181,14 +213,19 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
         </div>
 
         {/* Silk Yield Banner */}
-        <Card onClick={() => onNavigate('predict')} hoverable className="bg-slate-900 border-indigo-500/30 flex items-center justify-between p-4">
+        <Card onClick={() => onNavigate('predict')} hoverable className="bg-slate-900 border-indigo-500/30 flex items-center justify-between p-4 cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-400 uppercase">Silk Yield Prediction</div>
-              <div className="text-lg font-bold text-white">{silk.predictedYieldKg} kg predicted <span className="text-xs font-normal text-indigo-400">({silk.recoveryRatePct}% recovery)</span></div>
+              <div className="text-lg font-bold text-white">
+                {silkwormCount > 0 ? `${predictedSilkKg} kg predicted` : 'Not Available'}
+                <span className="text-xs font-normal text-indigo-400 ml-1">
+                  {silkwormCount > 0 ? '(20.4% recovery)' : '(Requires active batch)'}
+                </span>
+              </div>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-slate-500" />
@@ -209,7 +246,7 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
           </div>
           <button 
             onClick={() => onNavigate('copilot')}
-            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl transition-all shadow-md shadow-emerald-950/50 shrink-0"
+            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl transition-all shadow-md shadow-emerald-950/50 shrink-0 cursor-pointer"
           >
             {d.cardCopilot?.btn || "Ask Copilot"}
           </button>

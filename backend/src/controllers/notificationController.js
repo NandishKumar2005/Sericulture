@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const SilkwormBatch = require('../models/SilkwormBatch');
+const Farm = require('../models/Farm');
 const { getWeatherForLocation } = require('../services/weatherService');
 
 // @desc Get user notifications with smart dynamic sericulture alerts
@@ -13,58 +14,58 @@ exports.getNotifications = async (req, res) => {
       savedNotifications = await Notification.find({ userId }).sort({ createdAt: -1 }).limit(20);
     }
 
-    // Generate dynamic sericulture alerts
     const dynamicAlerts = [];
 
-    // 1. Harvesting alert based on batch lifecycle
-    dynamicAlerts.push({
-      _id: 'dyn_harvest_1',
-      title: 'Harvest Alert: Mounting & Spinning Phase',
-      message: 'Batch Sep-A is entering 5th Instar Spinning Stage. Prepare Chandrike (cocoon mounting frames) & keep rearing hall ventilated!',
-      type: 'harvest_reminder',
-      read: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      action: 'harvest'
-    });
+    if (userId) {
+      const userFarms = await Farm.find({ userId });
+      const farmIds = userFarms.map(f => f._id);
+      const activeBatches = await SilkwormBatch.find({ farmId: { $in: farmIds }, status: 'active' });
 
-    // 2. Feeding schedule reminder
-    dynamicAlerts.push({
-      _id: 'dyn_feed_1',
-      title: 'Feeding Schedule Reminder',
-      message: 'Afternoon feeding due: Administer 4.5 kg fresh Mulberry (V1 variety) leaves for 4th Instar larvae.',
-      type: 'feeding_reminder',
-      read: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      action: 'feeding'
-    });
-
-    // 3. Environmental Weather Alert
-    const location = req.query.location || 'Kolar, Karnataka';
-    const weather = await getWeatherForLocation(location);
-    if (weather.temperature_celsius > 28 || weather.humidity_pct < 70) {
-      dynamicAlerts.push({
-        _id: 'dyn_weather_1',
-        title: `Weather Alert for ${weather.location}`,
-        message: `Current Temp: ${weather.temperature_celsius}°C, Humidity: ${weather.humidity_pct}%. ${weather.sericulture_advice}`,
-        type: 'prediction_alert',
-        read: false,
-        createdAt: new Date().toISOString(),
-        action: 'weather'
+      activeBatches.forEach((batch) => {
+        if (batch.currentInstar && batch.currentInstar.toLowerCase().includes('5th')) {
+          dynamicAlerts.push({
+            _id: `dyn_harvest_${batch._id}`,
+            title: `Harvest Alert: ${batch.batchName}`,
+            message: `${batch.batchName} has reached ${batch.currentInstar}. Prepare Chandrike mounting frames for cocoon spinning!`,
+            type: 'harvest_reminder',
+            read: false,
+            createdAt: new Date().toISOString(),
+            action: 'harvest'
+          });
+        }
+        dynamicAlerts.push({
+          _id: `dyn_feed_${batch._id}`,
+          title: `Feeding Reminder: ${batch.batchName}`,
+          message: `Scheduled feeding for ${batch.silkwormCount.toLocaleString()} silkworms in ${batch.batchName} (${batch.currentInstar}).`,
+          type: 'feeding_reminder',
+          read: false,
+          createdAt: new Date().toISOString(),
+          action: 'feeding'
+        });
       });
     }
 
-    // 4. Bed Cleaning / Moult Alert
-    dynamicAlerts.push({
-      _id: 'dyn_bed_1',
-      title: 'Bed Cleaning & Disinfection Reminder',
-      message: 'Disinfect rearing bed with Vijetha / Sanitech powder before feeding post-moult silkworms.',
-      type: 'system',
-      read: true,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-      action: 'leaf'
-    });
+    // Environmental Weather Alert
+    const location = req.query.location || (req.user ? req.user.location : '') || 'Karnataka, India';
+    if (location) {
+      try {
+        const weather = await getWeatherForLocation(location);
+        if (weather && (weather.temperature_celsius > 28 || weather.humidity_pct < 70)) {
+          dynamicAlerts.push({
+            _id: 'dyn_weather_1',
+            title: `Weather Alert for ${weather.location}`,
+            message: `Current Temp: ${weather.temperature_celsius}°C, Humidity: ${weather.humidity_pct}%. ${weather.sericulture_advice}`,
+            type: 'prediction_alert',
+            read: false,
+            createdAt: new Date().toISOString(),
+            action: 'weather'
+          });
+        }
+      } catch (wErr) {
+        // Ignore weather service errors gracefully
+      }
+    }
 
-    // Combine saved and dynamic
     const allNotifications = [...savedNotifications, ...dynamicAlerts];
 
     res.json({
