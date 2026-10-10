@@ -454,6 +454,7 @@ export default function App() {
   const [lang, setLang] = useState('en'); // 'en', 'kn', 'hi', 'te', 'ta', 'ml'
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
@@ -959,6 +960,48 @@ export default function App() {
               >
                 ⚡ Launch Instant Mobile App in Browser (https://sericulture-iota.vercel.app/)
               </a>
+
+              {/* Android Device Installation Guide & Troubleshooting Accordion */}
+              <div className="pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowInstallGuide(!showInstallGuide)}
+                  className="w-full flex items-center justify-between text-xs font-bold text-amber-400 hover:text-amber-300 py-2 transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Icons.ShieldCheck /> <span>Trouble opening APK? View Android Setup Tips</span>
+                  </span>
+                  <span>{showInstallGuide ? '▲' : '▼'}</span>
+                </button>
+
+                {showInstallGuide && (
+                  <div className="mt-3 bg-slate-950 p-4 rounded-2xl border border-amber-500/30 text-xs space-y-3 animate-fadeIn text-left text-slate-300">
+                    <div className="font-bold text-amber-400 flex items-center gap-1">
+                      📱 Android Device Installation Guide:
+                    </div>
+                    <ul className="space-y-2 text-[11px] leading-relaxed text-slate-300">
+                      <li className="flex items-start gap-2">
+                        <span className="text-amber-400 font-bold shrink-0">1.</span>
+                        <div>
+                          <strong className="text-white">"Install Unknown Apps" Permission:</strong> Go to Mobile <em>Settings → Special App Access (or Security) → Install Unknown Apps</em> and allow permission for Chrome / browser.
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-amber-400 font-bold shrink-0">2.</span>
+                        <div>
+                          <strong className="text-white">Open via File Manager:</strong> If tapping notification says <em>"Can't open file"</em>, open your phone's <strong>Files / My Files</strong> app, go to <strong>Downloads</strong>, and tap <code>ReshmeAI-v1.0.0.apk</code> directly.
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-amber-400 font-bold shrink-0">3.</span>
+                        <div>
+                          <strong className="text-white">Play Protect Warning:</strong> If Google Play Protect displays a security prompt, tap <em>"More Details"</em> and select <strong className="text-emerald-400">"Install Anyway"</strong>.
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
