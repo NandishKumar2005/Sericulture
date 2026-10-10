@@ -86,7 +86,9 @@ export default function App() {
       <SplashScreen
         t={t}
         onFinish={() => {
-          if (user && localStorage.getItem('token')) {
+          const storedToken = localStorage.getItem('token');
+          const storedUser = localStorage.getItem('user');
+          if ((user || storedUser) && storedToken) {
             setCurrentScreen('dashboard');
           } else {
             setCurrentScreen('auth');

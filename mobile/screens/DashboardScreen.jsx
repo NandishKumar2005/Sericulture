@@ -95,6 +95,7 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
   };
   const multiplier = instarMultipliers[instarName] || 0.00091;
   const recommendedTodayKg = (silkwormCount * multiplier).toFixed(1);
+  const feedingSubtitle = `${instarName} • 4 Feeds/Day`;
 
   const predictedCocoonKg = (silkwormCount * 0.00213).toFixed(1);
   const predictedSilkKg = (predictedCocoonKg * 0.204).toFixed(1);
