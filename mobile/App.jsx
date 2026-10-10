@@ -150,7 +150,13 @@ export default function App() {
         {currentScreen === 'leaf' && <LeafQualityScreen t={t} isDarkMode={isDarkMode} />}
         {currentScreen === 'feeding' && <FeedingOptimizerScreen t={t} isDarkMode={isDarkMode} />}
         {currentScreen === 'predict' && <ProductionPredictionScreen t={t} isDarkMode={isDarkMode} />}
-        {currentScreen === 'analytics' && <AnalyticsScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'analytics' && (
+          <AnalyticsScreen 
+            t={t} 
+            isDarkMode={isDarkMode} 
+            onNavigate={(screen) => setCurrentScreen(screen)} 
+          />
+        )}
         {currentScreen === 'copilot' && <CopilotScreen user={user} summary={null} t={t} isDarkMode={isDarkMode} />}
       </main>
 
