@@ -467,10 +467,10 @@ export default function App() {
   ];
 
   const handleDownloadAndRedirect = (e) => {
-    // Direct HTTP download from Vercel domain
-    const apkUrl = '/ReshmeAI-v1.0.0.apk';
+    // Official GitHub Release APK download link
+    const releaseUrl = 'https://github.com/NandishKumar20005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk';
     const link = document.createElement('a');
-    link.href = apkUrl;
+    link.href = releaseUrl;
     link.setAttribute('download', 'ReshmeAI-v1.0.0.apk');
     document.body.appendChild(link);
     link.click();
@@ -943,7 +943,7 @@ export default function App() {
 
             <div className="space-y-3 pt-2">
               <a
-                href="/ReshmeAI-v1.0.0.apk"
+                href="https://github.com/NandishKumar20005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk"
                 download="ReshmeAI-v1.0.0.apk"
                 onClick={handleDownloadAndRedirect}
                 className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-4 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
