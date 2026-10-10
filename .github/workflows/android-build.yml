@@ -1,12 +1,17 @@
-name: Build Android APK
+name: Build Android APK & Release
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   build-apk:
+    name: Build & Publish Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -18,6 +23,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -33,7 +41,7 @@ jobs:
       - name: Sync Capacitor Android
         run: |
           cd mobile
-          npx cap sync android || true
+          npx cap sync android
 
       - name: Build Android Debug APK
         run: |
@@ -41,20 +49,26 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Rename & Prepare APK Artifact
+        run: |
+          mkdir -p output_apk
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk output_apk/ReshmeAI-v1.0.0.apk
+
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ReshmeAI-v1.0.0.apk
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: output_apk/ReshmeAI-v1.0.0.apk
 
       - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.0
           name: ReshmeAI Android APK Release v1.0.0
           body: |
-            Official compiled Android APK for ReshmeAI Smart Sericulture Mobile App.
+            Official compiled Android APK binary for ReshmeAI Smart Sericulture Mobile App.
             Compatible with Android 8.0+.
-          files: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          files: output_apk/ReshmeAI-v1.0.0.apk
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

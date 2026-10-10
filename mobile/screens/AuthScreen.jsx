@@ -80,19 +80,22 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
     } catch (err) {
       console.warn('Auth API Notice:', err.message);
 
-      // Fallback auth session if backend server is unreachable
-      const fallbackName = formData.name.trim() || (lang === 'kn' ? 'ರಮೇಶ್ ಕುಮಾರ್' : 'Farmer Profile');
-      const fallbackUser = {
-        name: fallbackName,
-        phone: formData.phone.trim() || '9876543210',
-        email: formData.email.trim() || 'farmer@reshme.org',
-        location: formData.location.trim() || 'Karnataka, India'
-      };
-      const mockJwtToken = `valid_session_jwt_${Date.now()}`;
+      const msg = err.message || 'Authentication failed.';
+      const isUnregistered = msg.toLowerCase().includes('not found') || 
+                             msg.toLowerCase().includes('invalid credentials') || 
+                             msg.toLowerCase().includes('not registered') ||
+                             msg.toLowerCase().includes('401') ||
+                             msg.toLowerCase().includes('404');
 
-      localStorage.setItem('token', mockJwtToken);
-      localStorage.setItem('user', JSON.stringify(fallbackUser));
-      onLoginSuccess(fallbackUser);
+      if (!isRegister && isUnregistered) {
+        setErrorMessage(lang === 'kn' 
+          ? 'ಖಾತೆ ನೋಂದಾಯಿಸಲಾಗಿಲ್ಲ ಅಥವಾ ತಪ್ಪು ವಿವರಗಳು. ದಯವಿಟ್ಟು ಹೊಸ ಖಾತೆ ತೆರೆಯಿರಿ.' 
+          : 'Account not registered or invalid details. Please create a new account.');
+        // Automatically switch to Register tab for convenience
+        setIsRegister(true);
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setLoading(false);
     }
