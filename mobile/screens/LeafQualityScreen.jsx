@@ -91,135 +91,192 @@ export default function LeafQualityScreen({ t }) {
     }
   };
 
-  // Canvas RGB / Greenness & Texture Quality Analyzer
+  // Converts RGB to HSL
+  const rgbToHsl = (r, g, b) => {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        default: h = ((r - g) / d + 4) / 6;
+      }
+    }
+    return [h * 360, s * 100, l * 100];
+  };
+
+  // Advanced Leaf Quality Analyzer with non-leaf detection
   const analyzeLeafImageCanvas = (imgSrc) => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const width = 140;
-        const height = 140;
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
+        const W = 200, H = 200;
+        canvas.width = W; canvas.height = H;
+        ctx.drawImage(img, 0, 0, W, H);
+        const data = ctx.getImageData(0, 0, W, H).data;
 
-        const imgData = ctx.getImageData(0, 0, width, height).data;
-        let nonBackgroundPixels = 0;
-        let greenCount = 0;
-        let yellowCount = 0;
-        let spotCount = 0;
+        let totalPx = 0;
+        let greenPx = 0;   // healthy green hue
+        let lushPx = 0;    // deep/dark lush green
+        let yellowPx = 0;  // yellowing / nutrient deficient
+        let brownPx = 0;   // browning / disease
+        let darkPx = 0;    // very dark spots / necrosis
+        let nonLeafPx = 0; // pixels that are clearly not leaf-like (highly saturated non-green, bright colours)
 
-        for (let i = 0; i < imgData.length; i += 4) {
-          const r = imgData[i];
-          const g = imgData[i + 1];
-          const b = imgData[i + 2];
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i+1], b = data[i+2];
+          // Skip near-white & near-black backgrounds
+          if ((r > 230 && g > 230 && b > 230) || (r < 20 && g < 20 && b < 20)) continue;
+          totalPx++;
 
-          // Exclude extremely dark background shadows (r,g,b all < 35) or bright white studio background
-          if ((r < 35 && g < 35 && b < 35) || (r > 240 && g > 240 && b > 240)) {
-            continue;
+          const [h, s, l] = rgbToHsl(r, g, b);
+
+          // Lush / dark green: hue 80-165, decent saturation
+          if (h >= 80 && h <= 165 && s >= 25 && l >= 10 && l <= 55) {
+            lushPx++; greenPx++;
           }
-
-          nonBackgroundPixels++;
-
-          // Green leaf pixel condition: Green channel dominates or exceeds Red & Blue
-          if (g > r && g > b) {
-            greenCount++;
-          } else if (r > 130 && g > 110 && b < 100) {
-            yellowCount++;
-          } else if (r < 70 && g < 70 && b < 70) {
-            spotCount++;
+          // Light / pale green: hue 60-80 or 165-180 or lighter greens
+          else if (h >= 60 && h <= 180 && s >= 15 && l > 55 && l <= 80) {
+            greenPx++;
+          }
+          // Yellow / yellowing leaf: hue 35-60, some saturation
+          else if (h >= 35 && h < 60 && s >= 20) {
+            yellowPx++;
+          }
+          // Brown / disease: hue 10-35, moderate saturation
+          else if (h >= 10 && h < 35 && s >= 20) {
+            brownPx++;
+          }
+          // Dark spots / necrosis: very low lightness, not background
+          else if (l < 15) {
+            darkPx++;
+          }
+          // Non-leaf pixels: high saturation in clearly non-plant hues (red, blue, purple, etc.)
+          else if (
+            (h < 10 || h > 320) && s >= 35 ||     // reds / magentas
+            (h >= 200 && h <= 280 && s >= 35) ||   // blues / purples
+            (s < 8 && l > 20 && l < 80)             // greys (paper, skin, wall, etc.)
+          ) {
+            nonLeafPx++;
           }
         }
 
-        const totalPixels = Math.max(1, nonBackgroundPixels);
-        const greenRatio = greenCount / totalPixels;
-        const yellowRatio = yellowCount / totalPixels;
-        const spotRatio = spotCount / totalPixels;
-
-        // Calculate score accurately (healthy green leaf gives 88-96 score)
-        let score = Math.round(greenRatio * 65 + 32 + (1 - spotRatio) * 15 - yellowRatio * 20);
-        if (greenCount > 0 && spotRatio < 0.25) {
-          score = Math.max(82, score);
+        if (totalPx < 400) {
+          reject(new Error('Image appears to be blank or too dark. Please retake the photo in good lighting.'));
+          return;
         }
-        score = Math.min(97, Math.max(45, score));
 
-        let category = 'Good';
-        let suitability = 'Suitable for 4th & 5th Instar';
-        let colorTone = 'Fresh Green';
-        let texture = 'Smooth & Succulent';
-        let moisture = '82% High Hydration';
-        let damage = 'None (Healthy Leaf)';
-        let stage = '5th Instar Ready';
-        let observationsList = [];
+        const greenRatio  = greenPx  / totalPx;
+        const lushRatio   = lushPx   / totalPx;
+        const yellowRatio = yellowPx / totalPx;
+        const brownRatio  = brownPx  / totalPx;
+        const darkRatio   = darkPx   / totalPx;
+        const nonLeafRatio = nonLeafPx / totalPx;
 
-        if (score >= 85) {
-          category = 'Excellent';
-          colorTone = 'Dark Lush Green';
-          texture = 'Smooth & Succulent';
-          moisture = '85% Optimal Moisture';
-          damage = 'None (Healthy)';
+        // --- Non-leaf detection ---
+        // If green coverage is below 15% OR clearly non-plant pixels dominate → reject
+        if (greenRatio < 0.12 || nonLeafRatio > 0.45 || (yellowRatio + brownRatio + nonLeafRatio > 0.75 && greenRatio < 0.18)) {
+          reject(new Error(
+            '⚠️ No mulberry leaf detected in the image. Please scan a clear mulberry leaf. '
+            + 'Avoid scanning other objects, hands, or backgrounds.'
+          ));
+          return;
+        }
+
+        // --- Score computation (no artificial floor) ---
+        // Base: green coverage drives score upward
+        // lush green gives more bonus
+        // yellow/brown/dark penalize
+        let score =
+          20
+          + (greenRatio  * 55)   // up to +55 for full green coverage
+          + (lushRatio   * 20)   // up to +20 bonus for deep lush green
+          - (yellowRatio * 40)   // yellow penalizes strongly
+          - (brownRatio  * 60)   // brown penalizes more (disease)
+          - (darkRatio   * 30);  // necrosis / dark spots
+
+        score = Math.round(Math.max(10, Math.min(99, score)));
+
+        // --- Category & suitability ---
+        let category, suitability, colorTone, texture, moisture, damage, stage;
+        const observationsList = [];
+
+        if (score >= 82) {
+          category    = 'Excellent';
+          colorTone   = lushRatio > 0.3 ? 'Dark Lush Green' : 'Vibrant Green';
+          texture     = 'Smooth & Succulent';
+          moisture    = '83–88% Optimal';
+          damage      = 'None (Healthy)';
           suitability = 'Suitable for 5th Instar';
-          stage = '5th Instar Ready';
-          observationsList = [
-            'Leaf exhibits high chlorophyll density and rich green coloration.',
-            'Leaf surface is smooth and free from fungal leaf spot or mildew.',
-            'Optimal hydration content for maximum silk gland development.'
-          ];
-        } else if (score >= 70) {
-          category = 'Good';
-          colorTone = 'Light Green';
-          texture = 'Slightly Rough';
-          moisture = '75% Normal Hydration';
-          damage = 'Minor Edge Wear';
+          stage       = '5th Instar Ready';
+          observationsList.push('Strong chlorophyll density — leaf is at peak nutritional quality.');
+          observationsList.push('Surface appears smooth and free of disease or pest damage.');
+          observationsList.push('Optimal hydration supports maximum silk gland development.');
+        } else if (score >= 65) {
+          category    = 'Good';
+          colorTone   = 'Light-Medium Green';
+          texture     = 'Slightly Rough';
+          moisture    = '72–82% Normal';
+          damage      = yellowRatio > 0.1 ? 'Minor Yellowing' : 'Minor Edge Wear';
           suitability = 'Suitable for 3rd & 4th Instar';
-          stage = '3rd & 4th Instar Ready';
-          observationsList = [
-            'Leaf is healthy with uniform light green pigmentation.',
-            'Suitable for middle instar silkworm feeding.'
-          ];
+          stage       = '3rd & 4th Instar Ready';
+          observationsList.push('Leaf is generally healthy with adequate pigmentation.');
+          if (yellowRatio > 0.08) observationsList.push(`Slight yellowing detected (~${Math.round(yellowRatio*100)}% of area). Monitor for nutrient stress.`);
+          observationsList.push('Suitable for middle-instar feeding; check freshness before use.');
+        } else if (score >= 42) {
+          category    = 'Moderate';
+          colorTone   = 'Yellowish / Pale';
+          texture     = 'Rough / Dry';
+          moisture    = '55–70% Low';
+          damage      = brownRatio > 0.1 ? 'Browning / Disease Spots' : 'Chlorosis / Yellowing';
+          suitability = 'Feed with caution (Young larvae only)';
+          stage       = '1st & 2nd Instar Only';
+          if (yellowRatio > 0.12) observationsList.push(`Noticeable yellowing (~${Math.round(yellowRatio*100)}%) — possible nitrogen deficiency or aging.`);
+          if (brownRatio > 0.08) observationsList.push(`Browning or spots detected (~${Math.round(brownRatio*100)}%). Inspect for fungal disease.`);
+          observationsList.push('Low moisture; only suitable for chawki (young larvae) with caution.');
         } else {
-          category = 'Moderate';
-          colorTone = 'Yellowish Green';
-          texture = 'Rough / Dry';
-          moisture = '62% Low Moisture';
-          damage = 'Moderate Chlorosis / Spotting';
-          suitability = 'Feed with caution (Chawki only)';
-          stage = '1st & 2nd Instar Only';
-          observationsList = [
-            'Minor yellowing or dryness detected on leaf edges.',
-            'Moisture content is lower; suitable for young larvae.'
-          ];
+          category    = 'Poor';
+          colorTone   = brownRatio > yellowRatio ? 'Brownish / Necrotic' : 'Severely Yellowed';
+          texture     = 'Very Rough / Damaged';
+          moisture    = '<55% Very Low';
+          damage      = 'Severe Damage / Disease';
+          suitability = 'Unsuitable — Do NOT feed';
+          stage       = 'Not Recommended';
+          observationsList.push('Leaf is in poor condition with extensive discolouration or damage.');
+          if (brownRatio > 0.15) observationsList.push(`Severe browning (~${Math.round(brownRatio*100)}%) — likely fungal infection or physical damage.`);
+          if (yellowRatio > 0.2) observationsList.push(`Extensive yellowing (~${Math.round(yellowRatio*100)}%) — leaf is not suitable for any silkworm stage.`);
+          observationsList.push('Discard this leaf. Using it risks silkworm health and silk yield.');
         }
+
+        // Confidence based on how clear the classification is
+        const distFromThreshold = Math.min(
+          Math.abs(score - 42), Math.abs(score - 65), Math.abs(score - 82)
+        );
+        const confidencePct = Math.round(Math.min(97, 60 + distFromThreshold * 2.2));
 
         resolve({
           quality_score: score,
           quality_category: category,
           color_tone: colorTone,
-          texture: texture,
+          texture,
           moisture_content: moisture,
           visible_damage: damage,
           feeding_suitability: suitability,
           silkworm_stage: stage,
-          confidence_pct: Math.min(96, Math.max(88, Math.round(score * 0.92 + 10))),
+          confidence_pct: confidencePct,
           observations: observationsList
         });
       };
 
       img.onerror = () => {
-        resolve({
-          quality_score: 92,
-          quality_category: 'Excellent',
-          color_tone: 'Dark Green',
-          texture: 'Smooth',
-          moisture_content: '84%',
-          visible_damage: 'None (Healthy)',
-          feeding_suitability: 'Suitable for 5th Instar',
-          silkworm_stage: '5th Instar Ready',
-          confidence_pct: 94,
-          observations: ['Leaf shows healthy chlorophyll levels and optimal texture.']
-        });
+        reject(new Error('Failed to load image for analysis. Please retake the photo.'));
       };
       img.src = imgSrc;
     });
@@ -394,11 +451,16 @@ export default function LeafQualityScreen({ t }) {
 
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-4xl font-black text-emerald-400 tracking-tight">
+              <div className={`text-4xl font-black tracking-tight ${
+                result.quality_score >= 82 ? 'text-emerald-400'
+                : result.quality_score >= 65 ? 'text-lime-400'
+                : result.quality_score >= 42 ? 'text-amber-400'
+                : 'text-rose-500'
+              }`}>
                 {result.quality_score}<span className="text-xl text-slate-400">/100</span>
               </div>
               <div className="flex items-center gap-1.5 mt-1">
-                {result.quality_score >= 70 ? (
+                {result.quality_score >= 65 ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 ) : (
                   <ShieldAlert className="w-4 h-4 text-rose-400" />
@@ -408,7 +470,10 @@ export default function LeafQualityScreen({ t }) {
             </div>
             <div className="text-right">
               <span className={`inline-block text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-md ${
-                result.quality_score >= 70 ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white'
+                result.quality_score >= 82 ? 'bg-emerald-500 text-slate-950'
+                : result.quality_score >= 65 ? 'bg-lime-500 text-slate-950'
+                : result.quality_score >= 42 ? 'bg-amber-500 text-slate-950'
+                : 'bg-rose-600 text-white'
               }`}>
                 {result.feeding_suitability}
               </span>
@@ -418,7 +483,10 @@ export default function LeafQualityScreen({ t }) {
           <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
-                result.quality_score >= 80 ? 'bg-emerald-400' : result.quality_score >= 60 ? 'bg-amber-400' : 'bg-rose-500'
+                result.quality_score >= 82 ? 'bg-emerald-400'
+                : result.quality_score >= 65 ? 'bg-lime-400'
+                : result.quality_score >= 42 ? 'bg-amber-400'
+                : 'bg-rose-500'
               }`}
               style={{ width: `${Math.min(100, Math.max(10, result.quality_score))}%` }}
             />

@@ -75,16 +75,20 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
     }
   };
 
-  // Dynamic metrics with non-empty defaults
-  const leafScoreVal = latestLeafScan ? (latestLeafScan.qualityScore || latestLeafScan.score || 91) : 91;
-  const leafScoreText = `${leafScoreVal}/100`;
-  const leafSubtitleText = totalScansCount > 0 
-    ? `${totalScansCount} ${totalScansCount === 1 ? 'Scan' : 'Scans'} Recorded` 
-    : 'Grade A Lush Green';
-  const leafCategoryBadge = latestLeafScan ? (latestLeafScan.qualityCategory || latestLeafScan.category || 'Excellent') : 'Grade A';
+  // Dynamic metrics — only show real data, never fake defaults
+  const hasLeafScan = !!latestLeafScan;
+  const leafScoreVal = hasLeafScan ? (latestLeafScan.qualityScore || latestLeafScan.score) : null;
+  const leafScoreText = leafScoreVal != null ? `${leafScoreVal}/100` : '--/100';
+  const leafSubtitleText = hasLeafScan
+    ? (totalScansCount > 0 ? `${totalScansCount} ${totalScansCount === 1 ? 'Scan' : 'Scans'} Recorded` : 'Scan recorded')
+    : 'No scans yet — tap to scan';
+  const leafCategoryBadge = hasLeafScan
+    ? (latestLeafScan.qualityCategory || latestLeafScan.category || 'Good')
+    : 'N/A';
 
-  const silkwormCount = activeBatch?.silkwormCount || 20000;
-  const instarName = activeBatch?.currentInstar || '5th Instar';
+  const hasBatch = !!activeBatch;
+  const silkwormCount = activeBatch?.silkwormCount || 0;
+  const instarName = activeBatch?.currentInstar || '--';
 
   const instarMultipliers = {
     '1st Instar': 0.000015,
@@ -94,11 +98,11 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
     '5th Instar': 0.00091
   };
   const multiplier = instarMultipliers[instarName] || 0.00091;
-  const recommendedTodayKg = (silkwormCount * multiplier).toFixed(1);
-  const feedingSubtitle = `${instarName} • 4 Feeds/Day`;
+  const recommendedTodayKg = hasBatch ? (silkwormCount * multiplier).toFixed(1) : '--';
+  const feedingSubtitle = hasBatch ? `${instarName} • 4 Feeds/Day` : 'No active batch';
 
-  const predictedCocoonKg = (silkwormCount * 0.00213).toFixed(1);
-  const predictedSilkKg = (predictedCocoonKg * 0.204).toFixed(1);
+  const predictedCocoonKg = hasBatch ? (silkwormCount * 0.00213).toFixed(1) : '--';
+  const predictedSilkKg = hasBatch ? ((silkwormCount * 0.00213) * 0.204).toFixed(1) : '--';
 
   return (
     <div className="p-4 pb-24 space-y-5 max-w-md mx-auto animate-fadeIn">
@@ -147,35 +151,55 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
       />
 
       {/* Active Silkworm Batch Status Card */}
-      <Card className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border-emerald-500/30">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Active Batch</span>
+      {hasBatch ? (
+        <Card className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border-emerald-500/30">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Active Batch</span>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              {instarName}
+            </span>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            {instarName}
-          </span>
-        </div>
 
-        <div className="flex items-baseline justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight">
-              {activeBatch ? activeBatch.batchName : 'V1 Silkworm Batch #1'}
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {`${silkwormCount.toLocaleString()} Silkworms • Active Cycle`}
-            </p>
+          <div className="flex items-baseline justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold text-white tracking-tight">
+                {activeBatch.batchName}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {`${silkwormCount.toLocaleString()} Silkworms • Active Cycle`}
+              </p>
+            </div>
+            <button 
+              onClick={() => onNavigate('feeding')}
+              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 cursor-pointer"
+            >
+              <span>{d.cardFeeding?.btn || 'Log Feed'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <button 
-            onClick={() => onNavigate('feeding')}
-            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 cursor-pointer"
-          >
-            <span>{d.cardFeeding?.btn || 'Log Feed'}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </Card>
+        </Card>
+      ) : (
+        <Card
+          className="border-dashed border-slate-600 bg-slate-900/60 flex items-center justify-between p-4 cursor-pointer"
+          onClick={() => activeFarm ? setIsBatchModalOpen(true) : setIsFarmModalOpen(true)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500">
+              <Sprout className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-300">No Active Batch</p>
+              <p className="text-xs text-slate-500 mt-0.5">Tap to create your first silkworm batch</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 cursor-pointer">
+            + Create Batch
+          </span>
+        </Card>
+      )}
 
       {/* Primary KPI Grid */}
       <div className="space-y-3">
@@ -248,10 +272,12 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
             <div>
               <div className="text-xs font-semibold text-slate-400 uppercase">Silk Yield Prediction</div>
               <div className="text-lg font-bold text-white">
-                {`${predictedSilkKg} kg predicted`}
-                <span className="text-xs font-normal text-indigo-400 ml-1">
-                  (20.4% recovery)
-                </span>
+                {hasBatch ? `${predictedSilkKg} kg predicted` : 'No batch data'}
+                {hasBatch && (
+                  <span className="text-xs font-normal text-indigo-400 ml-1">
+                    (20.4% recovery)
+                  </span>
+                )}
               </div>
             </div>
           </div>
