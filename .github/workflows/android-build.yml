@@ -34,6 +34,8 @@ jobs:
 
       - name: Install Mobile Dependencies & Build Web Assets
         working-directory: mobile
+        env:
+          VITE_API_URL: https://reshme-backend.onrender.com/api
         run: |
           npm install --legacy-peer-deps
           npm run build
