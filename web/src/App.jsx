@@ -468,8 +468,7 @@ export default function App() {
   ];
 
   const handleDownloadAndRedirect = (e) => {
-    // Direct navigation works for cross-origin GitHub Release downloads
-    window.location.href = 'https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk';
+    window.location.href = 'https://reshme-ai-dashboard.vercel.app/ReshmeAI-v1.0.0.apk';
   };
 
   const handleLaunchWebApp = (e) => {
@@ -919,7 +918,7 @@ export default function App() {
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="bg-white p-2 rounded-xl shrink-0 shadow-lg">
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://reshme-ai-dashboard.vercel.app/ReshmeAI-v1.0.0.apk"
                   alt="Scan QR Code to Download ReshmeAI APK"
                   className="w-28 h-28 object-contain"
                 />
@@ -936,8 +935,7 @@ export default function App() {
 
             <div className="space-y-3 pt-2">
               <a
-                href="https://github.com/NandishKumar20005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk"
-                download="ReshmeAI-v1.0.0.apk"
+                href="#"
                 onClick={handleDownloadAndRedirect}
                 className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-4 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
               >
