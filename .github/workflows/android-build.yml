@@ -73,9 +73,9 @@ jobs:
           rm -f "$RES/drawable-v24/ic_launcher_foreground.xml"
           echo "✓ Removed conflicting XML files"
 
-          # Overwrite the drawable foreground too
-          convert "$SRC" -resize "512x512!" "$RES/drawable/ic_launcher.png" || true
-          convert "$SRC" -resize "512x512!" "$RES/drawable-v24/ic_launcher_foreground.png" || true
+          # Overwrite the drawable icon (used directly by AndroidManifest)
+          convert "$SRC" -resize "512x512!" "$RES/drawable/ic_launcher.png"
+          echo "✓ drawable/ic_launcher.png replaced"
           echo "✓ All icons replaced"
 
       - name: Build Android Debug APK
