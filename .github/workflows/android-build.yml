@@ -44,6 +44,33 @@ jobs:
         working-directory: mobile
         run: npx cap sync android
 
+      - name: Inject Custom App Icon
+        run: |
+          # Install ImageMagick for resizing
+          sudo apt-get install -y imagemagick
+
+          SRC="mobile/assets/icon.jpeg"
+          RES="mobile/android/app/src/main/res"
+
+          declare -A sizes=(
+            ["mipmap-mdpi"]=48
+            ["mipmap-hdpi"]=72
+            ["mipmap-xhdpi"]=96
+            ["mipmap-xxhdpi"]=144
+            ["mipmap-xxxhdpi"]=192
+          )
+
+          for folder in "${!sizes[@]}"; do
+            size="${sizes[$folder]}"
+            convert "$SRC" -resize "${size}x${size}!" "$RES/$folder/ic_launcher.png"
+            convert "$SRC" -resize "${size}x${size}!" "$RES/$folder/ic_launcher_round.png"
+            echo "✓ $folder (${size}x${size})"
+          done
+
+          # Also replace foreground icon
+          convert "$SRC" -resize "432x432!" "$RES/mipmap-xxxhdpi/ic_launcher_foreground.png"
+          echo "✓ All icons replaced"
+
       - name: Build Android Debug APK
         working-directory: mobile/android
         run: |
