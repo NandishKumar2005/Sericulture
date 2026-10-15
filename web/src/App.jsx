@@ -468,14 +468,8 @@ export default function App() {
   ];
 
   const handleDownloadAndRedirect = (e) => {
-    // GitHub Release APK - built by CI and attached to the release
-    const apkUrl = 'https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk';
-    const link = document.createElement('a');
-    link.href = apkUrl;
-    link.setAttribute('download', 'ReshmeAI-v1.0.0.apk');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Direct navigation works for cross-origin GitHub Release downloads
+    window.location.href = 'https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk';
   };
 
   const handleLaunchWebApp = (e) => {
