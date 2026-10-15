@@ -468,8 +468,8 @@ export default function App() {
   ];
 
   const handleDownloadAndRedirect = (e) => {
-    // Serve APK directly from Vercel deployment (file is in /public folder)
-    const apkUrl = 'https://reshme-ai-dashboard.vercel.app/ReshmeAI-v1.0.0.apk';
+    // GitHub Release APK - built by CI and attached to the release
+    const apkUrl = 'https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk';
     const link = document.createElement('a');
     link.href = apkUrl;
     link.setAttribute('download', 'ReshmeAI-v1.0.0.apk');

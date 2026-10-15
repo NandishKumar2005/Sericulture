@@ -34,25 +34,25 @@ jobs:
 
       - name: Install Mobile Dependencies & Build Web Assets
         run: |
-          cd mobile
+          cd Sericulture/mobile
           npm install --legacy-peer-deps
           npm run build
 
       - name: Sync Capacitor Android
         run: |
-          cd mobile
+          cd Sericulture/mobile
           npx cap sync android
 
       - name: Build Android Debug APK
         run: |
-          cd mobile/android
+          cd Sericulture/mobile/android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename & Prepare APK Artifact
         run: |
           mkdir -p output_apk
-          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk output_apk/ReshmeAI-v1.0.0.apk
+          cp Sericulture/mobile/android/app/build/outputs/apk/debug/app-debug.apk output_apk/ReshmeAI-v1.0.0.apk
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
