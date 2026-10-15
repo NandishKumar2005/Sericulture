@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/((?!.*\\.apk$).*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.apk",
