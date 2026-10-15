@@ -614,7 +614,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 shrink-0">
-              <img src="https://raw.githubusercontent.com/NandishKumar2005/Sericulture/main/mobile/public/icon.png" alt="ReshmeAI" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='🍃'; }} />
+              <img src="/icon.jpeg" alt="ReshmeAI" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='🍃'; }} />
             </div>
             <div>
               <span className="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
