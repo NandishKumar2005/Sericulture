@@ -69,7 +69,9 @@ jobs:
           # Delete adaptive icon XMLs — they override PNGs on Android 8+ and show the old foreground
           rm -f "$RES/mipmap-anydpi-v26/ic_launcher.xml"
           rm -f "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
-          echo "✓ Removed adaptive icon XMLs"
+          # Delete conflicting vector XML foreground (causes duplicate resource error)
+          rm -f "$RES/drawable-v24/ic_launcher_foreground.xml"
+          echo "✓ Removed conflicting XML files"
 
           # Overwrite the drawable foreground too
           convert "$SRC" -resize "512x512!" "$RES/drawable/ic_launcher.png" || true
