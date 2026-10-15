@@ -82,8 +82,8 @@ const TRANSLATIONS = {
     hero: {
       badge: "Sericulture Decision Support System • Mobile + ML API",
       titlePre: "AI-Powered ",
-      titleSpan: "Precision Sericulture",
-      titlePost: " & Production Forecasting",
+      titleSpan: "Sericulture Decision Support",
+      titlePost: " & Yield Prediction System",
       desc: "Empowering sericulture farmers through the entire production cycle — from optimal mulberry leaf harvesting and computer-vision quality assessment to dynamic silkworm feeding and two-stage cocoon/silk yield forecasting.",
       btnApk: "Download Android App (APK)",
       btnExplore: "Explore Core Modules",
@@ -127,9 +127,9 @@ const TRANSLATIONS = {
       btnDownloadMain: "Download ReshmeAI-v1.0.0.apk (18.4 MB)"
     },
     footer: {
-      title: "ReshmeAI Sericulture System",
+      title: "AI Powered Sericulture Decision Support and Yield Prediction System",
       baseline: "Production Baseline",
-      tagline: "AI-Powered Precision Sericulture & Yield Forecasting"
+      tagline: "AI-Powered Sericulture Decision Support & Yield Prediction System"
     }
   },
 
@@ -613,8 +613,8 @@ export default function App() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20">
-              🍃
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 shrink-0">
+              <img src="https://raw.githubusercontent.com/NandishKumar2005/Sericulture/main/mobile/public/icon.png" alt="ReshmeAI" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='🍃'; }} />
             </div>
             <div>
               <span className="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
@@ -689,9 +689,8 @@ export default function App() {
             </a>
 
             <a
-              href="/ReshmeAI-v1.0.0.apk"
-              download="ReshmeAI-v1.0.0.apk"
-              onClick={handleDownloadAndRedirect}
+              href="#"
+              onClick={e => { e.preventDefault(); handleDownloadAndRedirect(); }}
               className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Icons.Download /> {t.nav.btnDownload}
@@ -721,9 +720,8 @@ export default function App() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <a
-              href="/ReshmeAI-v1.0.0.apk"
-              download="ReshmeAI-v1.0.0.apk"
-              onClick={handleDownloadAndRedirect}
+              href="#"
+              onClick={e => { e.preventDefault(); handleDownloadAndRedirect(); }}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-6 py-3.5 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
             >
               <Icons.Download /> {t.hero.btnApk}
@@ -921,7 +919,7 @@ export default function App() {
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="bg-white p-2 rounded-xl shrink-0 shadow-lg">
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://sericulture-iota.vercel.app/ReshmeAI-v1.0.0.apk"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://github.com/NandishKumar2005/Sericulture/releases/download/v1.0.0/ReshmeAI-v1.0.0.apk"
                   alt="Scan QR Code to Download ReshmeAI APK"
                   className="w-28 h-28 object-contain"
                 />
