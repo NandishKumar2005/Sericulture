@@ -26,6 +26,11 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Update notification state
+  const APP_VERSION = '1.0.0';
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+
   const t = MOBILE_TRANSLATIONS[lang] || MOBILE_TRANSLATIONS.en;
 
   // Restore stored session on startup
@@ -41,9 +46,24 @@ export default function App() {
     }
   }, []);
 
-  // Fetch unread notifications count when user logged in
+  // Check for app updates on startup
   useEffect(() => {
-    if (user) {
+    fetch('https://reshme-ai-dashboard.vercel.app/version.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        if (data.latestVersion && data.latestVersion !== APP_VERSION) {
+          setUpdateInfo(data);
+          setShowUpdateBanner(true);
+        } else if (data.forceUpdate) {
+          setUpdateInfo(data);
+          setShowUpdateBanner(true);
+        }
+      })
+      .catch(() => {}); // silently ignore if offline
+  }, []);
+
+  // Fetch unread notifications count when user logged in
+  useEffect(() => {    if (user) {
       notificationsAPI.getAll(user.location)
         .then(res => {
           const list = res.data || [];
@@ -189,6 +209,37 @@ export default function App() {
         lang={lang}
         t={t}
       />
+
+      {/* Update Available Banner */}
+      {showUpdateBanner && updateInfo && (
+        <div className="fixed bottom-20 left-0 right-0 z-50 px-4">
+          <div className="bg-emerald-600 text-white rounded-2xl p-4 shadow-2xl flex items-start gap-3 max-w-md mx-auto">
+            <span className="text-2xl shrink-0">🆕</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-extrabold text-sm">New Version Available — v{updateInfo.latestVersion}</div>
+              {updateInfo.releaseNotes && (
+                <div className="text-xs text-emerald-100 mt-0.5 truncate">{updateInfo.releaseNotes}</div>
+              )}
+              <div className="flex gap-2 mt-2">
+                <a
+                  href={updateInfo.downloadUrl}
+                  className="bg-white text-emerald-700 font-bold text-xs px-3 py-1.5 rounded-xl"
+                >
+                  Download Update
+                </a>
+                {!updateInfo.forceUpdate && (
+                  <button
+                    onClick={() => setShowUpdateBanner(false)}
+                    className="text-emerald-100 font-bold text-xs px-3 py-1.5 rounded-xl border border-emerald-400"
+                  >
+                    Later
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

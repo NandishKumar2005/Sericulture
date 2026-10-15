@@ -1,0 +1,6 @@
+{
+  "latestVersion": "1.0.0",
+  "downloadUrl": "https://reshme-ai-dashboard.vercel.app/ReshmeAI-v1.0.0.apk",
+  "releaseNotes": "Initial release — AI leaf scanner, feeding optimizer, harvest scheduler, yield predictor, and AI copilot.",
+  "forceUpdate": false
+}
