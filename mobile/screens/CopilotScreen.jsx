@@ -2,39 +2,49 @@ import React, { useState } from 'react';
 import { Bot, Send, User, Sparkles, RefreshCw, Mic, MicOff } from 'lucide-react';
 import { copilotAPI } from '../services/api';
 
-// Native speech via Capacitor plugin, falls back to Web Speech API in browser
-async function getNativeSpeech(langCode, onResult, onError) {
-  try {
-    const { SpeechRecognition } = await import('@capacitor-community/speech-recognition');
-    const { available } = await SpeechRecognition.available();
-    if (!available) throw new Error('not available');
-    await SpeechRecognition.requestPermissions();
-    await SpeechRecognition.start({
-      language: langCode,
-      maxResults: 1,
-      prompt: 'Speak now...',
-      partialResults: false,
-      popup: true,
-    });
-    SpeechRecognition.addListener('partialResults', () => {});
-    // For @capacitor-community/speech-recognition v5, result comes from start()
-    const result = await SpeechRecognition.stop();
-    const text = result?.matches?.[0] || '';
-    if (text) onResult(text);
-    else onError();
-  } catch {
-    // Fallback to Web Speech API (works in browser/Chrome)
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { onError(); return; }
-    const recognition = new SR();
-    recognition.lang = langCode;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.start();
-    recognition.onresult = (e) => onResult(e.results[0][0].transcript);
-    recognition.onerror = () => onError();
-    recognition.onend = () => {};
+// Robust voice input — tries native Android first, then Web Speech API
+function startVoiceInput(langCode, onResult, onEnd) {
+  // Try Web Speech API first (works in Chrome WebView on most Android devices)
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    try {
+      const recognition = new SR();
+      recognition.lang = langCode;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.continuous = false;
+      recognition.start();
+      recognition.onresult = (e) => {
+        const text = e.results[0]?.[0]?.transcript || '';
+        if (text) onResult(text);
+        onEnd();
+      };
+      recognition.onerror = () => onEnd();
+      recognition.onend = () => onEnd();
+      return;
+    } catch (e) { /* fall through */ }
   }
+
+  // Fallback: try Capacitor SpeechRecognition plugin
+  try {
+    const cap = window.Capacitor;
+    if (cap && cap.Plugins && cap.Plugins.SpeechRecognition) {
+      const plugin = cap.Plugins.SpeechRecognition;
+      plugin.requestPermissions().then(() => {
+        plugin.start({ language: langCode, maxResults: 1, partialResults: false })
+          .then((result) => {
+            const text = result?.matches?.[0] || '';
+            if (text) onResult(text);
+            onEnd();
+          })
+          .catch(() => onEnd());
+      }).catch(() => onEnd());
+      return;
+    }
+  } catch (e) { /* fall through */ }
+
+  // Nothing worked
+  onEnd();
 }
 
 const PROMPTS = {
@@ -105,13 +115,13 @@ export default function CopilotScreen({ user, summary }) {
   ];
 
   // ── Voice Typing Handler ───────────────────────────────────────────
-  const handleVoiceTyping = async () => {
+  const handleVoiceTyping = () => {
     if (isListening) return;
     const currentLangObj = langCodes.find(l => l.code === lang) || langCodes[0];
     setIsListening(true);
-    await getNativeSpeech(
+    startVoiceInput(
       currentLangObj.speech,
-      (text) => { setInput(text); setIsListening(false); },
+      (text) => setInput(text),
       () => setIsListening(false)
     );
   };

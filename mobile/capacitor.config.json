@@ -1,5 +1,16 @@
 {
   "appId": "com.reshmeai.app",
   "appName": "ReshmeAI",
-  "webDir": "dist"
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SpeechRecognition": {
+      "language": "en-US"
+    }
+  },
+  "server": {
+    "androidScheme": "https"
+  }
 }
