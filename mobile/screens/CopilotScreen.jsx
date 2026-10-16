@@ -1,6 +1,41 @@
 import React, { useState } from 'react';
-import { Bot, Send, User, Sparkles, Languages, RefreshCw, Mic, MicOff, Globe } from 'lucide-react';
+import { Bot, Send, User, Sparkles, RefreshCw, Mic, MicOff } from 'lucide-react';
 import { copilotAPI } from '../services/api';
+
+// Native speech via Capacitor plugin, falls back to Web Speech API in browser
+async function getNativeSpeech(langCode, onResult, onError) {
+  try {
+    const { SpeechRecognition } = await import('@capacitor-community/speech-recognition');
+    const { available } = await SpeechRecognition.available();
+    if (!available) throw new Error('not available');
+    await SpeechRecognition.requestPermissions();
+    await SpeechRecognition.start({
+      language: langCode,
+      maxResults: 1,
+      prompt: 'Speak now...',
+      partialResults: false,
+      popup: true,
+    });
+    SpeechRecognition.addListener('partialResults', () => {});
+    // For @capacitor-community/speech-recognition v5, result comes from start()
+    const result = await SpeechRecognition.stop();
+    const text = result?.matches?.[0] || '';
+    if (text) onResult(text);
+    else onError();
+  } catch {
+    // Fallback to Web Speech API (works in browser/Chrome)
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { onError(); return; }
+    const recognition = new SR();
+    recognition.lang = langCode;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.start();
+    recognition.onresult = (e) => onResult(e.results[0][0].transcript);
+    recognition.onerror = () => onError();
+    recognition.onend = () => {};
+  }
+}
 
 const PROMPTS = {
   en: [
@@ -70,48 +105,15 @@ export default function CopilotScreen({ user, summary }) {
   ];
 
   // ── Voice Typing Handler ───────────────────────────────────────────
-  const handleVoiceTyping = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const handleVoiceTyping = async () => {
+    if (isListening) return;
     const currentLangObj = langCodes.find(l => l.code === lang) || langCodes[0];
-
-    if (!SpeechRecognition) {
-      setIsListening(true);
-      const simulatedText = {
-        en: 'What is my leaf quality score and feeding recommendation?',
-        kn: 'ಎಲೆ ಗುಣಮಟ್ಟ ಮತ್ತು ಆಹಾರ ಪ್ರಮಾಣ ಎಷ್ಟು?',
-        hi: 'पत्ती की गुणवत्ता और आहार की मात्रा कितनी है?',
-        te: 'ఆకు నాణ్యత మరియు మేత ప్రమాణం ఎంత?',
-        ta: 'இலை தரம் மற்றும் உணவு அளவு எவ்வளவு?',
-        ml: 'ഇലയുടെ ഗുണനിലവാരവും തീറ്റ അളവും എത്ര?'
-      }[lang] || 'What is my leaf quality score and feeding recommendation?';
-
-      setTimeout(() => {
-        setInput(simulatedText);
-        setIsListening(false);
-      }, 1500);
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = currentLangObj.speech;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      setIsListening(true);
-      recognition.start();
-
-      recognition.onresult = (event) => {
-        const speechToText = event.results[0][0].transcript;
-        setInput(speechToText);
-        setIsListening(false);
-      };
-
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-    } catch (err) {
-      setIsListening(false);
-    }
+    setIsListening(true);
+    await getNativeSpeech(
+      currentLangObj.speech,
+      (text) => { setInput(text); setIsListening(false); },
+      () => setIsListening(false)
+    );
   };
 
   const handleLanguageToggle = (newLang) => {
