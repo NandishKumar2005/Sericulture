@@ -21,58 +21,121 @@
   }
 }
 
-/* Light Mode Overrides for Crystal Clear Readability */
+/* ── Light Mode Overrides ──────────────────────────────────── */
 .light-mode {
   background-color: #f8fafc !important;
   color: #0f172a !important;
 }
 
+/* Glass cards */
 .light-mode .glass-card {
   background: rgba(255, 255, 255, 0.95) !important;
   border: 1px solid #e2e8f0 !important;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
 }
-
 .light-mode .glass-card-hover:hover {
   background: #ffffff !important;
   border-color: rgba(16, 185, 129, 0.6) !important;
 }
 
+/* Text colors */
 .light-mode .text-white {
   color: #0f172a !important;
 }
-
 .light-mode .text-slate-100,
 .light-mode .text-slate-200,
 .light-mode .text-slate-300 {
   color: #1e293b !important;
 }
-
 .light-mode .text-slate-400,
 .light-mode .text-slate-500 {
   color: #475569 !important;
 }
-
-.light-mode .bg-slate-900,
-.light-mode .bg-slate-950 {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
+.light-mode .text-slate-600 {
+  color: #334155 !important;
 }
 
-.light-mode .bg-slate-900\/50,
+/* Background colors */
+.light-mode .bg-slate-950,
+.light-mode .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+.light-mode .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+}
+.light-mode .bg-slate-700 {
+  background-color: #e2e8f0 !important;
+}
 .light-mode .bg-slate-950\/50,
-.light-mode .bg-slate-950\/80 {
+.light-mode .bg-slate-950\/80,
+.light-mode .bg-slate-950\/90,
+.light-mode .bg-slate-900\/50,
+.light-mode .bg-slate-900\/60,
+.light-mode .bg-slate-900\/80 {
   background-color: #f1f5f9 !important;
 }
 
+/* Borders */
+.light-mode .border-slate-800,
+.light-mode .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+.light-mode .border-slate-600 {
+  border-color: #94a3b8 !important;
+}
+
+/* Navigation bar */
+.light-mode nav,
+.light-mode .fixed.bottom-0 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Header */
+.light-mode header,
+.light-mode .sticky,
+.light-mode [class*="backdrop-blur"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Inputs and selects */
 .light-mode input,
-.light-mode select {
+.light-mode select,
+.light-mode textarea {
   background-color: #ffffff !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
+.light-mode input::placeholder,
+.light-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
 
-/* Custom scrollbar */
+/* Cards and panels */
+.light-mode .rounded-2xl,
+.light-mode .rounded-3xl,
+.light-mode .rounded-xl {
+  --tw-shadow: 0 1px 6px -1px rgba(0,0,0,0.07);
+}
+
+/* Dividers */
+.light-mode .divide-slate-800 > * + * {
+  border-color: #e2e8f0 !important;
+}
+
+/* Custom scrollbar for light mode */
+.light-mode ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.light-mode ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* ── Dark mode scrollbar ───────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
