@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Phone, Lock, MapPin, ArrowRight, ShieldCheck, Mail, AlertCircle, Loader2, Globe } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import Card from '../components/Card';
 import { authAPI } from '../services/api';
 
@@ -35,6 +36,28 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
       password: '',
       location: ''
     });
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const res = await authAPI.googleLogin(credentialResponse.credential);
+      const token = res.token || res.data?.token;
+      const userProfile = res.user || res.data?.user;
+      if (!token || !userProfile) throw new Error('Google sign-in failed. Please try again.');
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userProfile));
+      onLoginSuccess(userProfile);
+    } catch (err) {
+      setErrorMessage(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setErrorMessage('Google sign-in was cancelled or failed. Please try again.');
   };
 
   const handleSubmit = async (e) => {
@@ -267,6 +290,23 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
         </form>
 
         <div className="mt-6 text-center pt-4 border-t border-slate-800">
+          {/* Google Sign-In */}
+          <div className="mb-4">
+            <p className="text-xs text-slate-500 mb-3">Or continue with</p>
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="filled_black"
+                shape="rectangular"
+                size="large"
+                text={isRegister ? 'signup_with' : 'signin_with'}
+                logo_alignment="left"
+                width="280"
+              />
+            </div>
+          </div>
+
           <p className="text-xs text-slate-400">
             {isRegister ? 'Already registered?' : 'New sericulture farmer?'}
             <button

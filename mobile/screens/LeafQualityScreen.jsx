@@ -24,7 +24,7 @@ function fileToBase64(file) {
   });
 }
 
-export default function LeafQualityScreen({ t }) {
+export default function LeafQualityScreen({ t, onScanComplete }) {
   const l = t?.leafScanner || {};
   const [farms, setFarms] = useState([]);
   const [farmId, setFarmId] = useState('');
@@ -305,9 +305,11 @@ export default function LeafQualityScreen({ t }) {
           imageBase64: imageBase64
         });
         setScanHistoryCount(prev => prev + 1);
+        if (onScanComplete) onScanComplete(analysisData);
       } catch (saveErr) {
         console.warn('Scan saved locally:', saveErr.message);
         setScanHistoryCount(prev => prev + 1);
+        if (onScanComplete) onScanComplete(analysisData);
       }
 
       setResult(analysisData);

@@ -7,7 +7,7 @@ import BatchSetupModal from '../components/BatchSetupModal';
 import WeatherWidget from '../components/WeatherWidget';
 import { farmsAPI, batchesAPI, leafAPI } from '../services/api';
 
-export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdate, isDarkMode = true }) {
+export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdate, isDarkMode = true, refreshTrigger = 0 }) {
   const d = t?.dashboard || {};
 
   const [farms, setFarms] = useState([]);
@@ -57,7 +57,7 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
       .catch(() => {});
 
     return () => { isMounted = false; };
-  }, []);
+  }, [refreshTrigger]);
 
   const handleFarmCreated = (newFarm) => {
     setFarms(prev => [newFarm, ...prev]);
@@ -231,9 +231,14 @@ export default function DashboardScreen({ user, onNavigate, t, lang, onUserUpdat
 
           {/* Harvest Scheduler Tile */}
           <StatTile
-            title={d.cardHarvest?.title || "Harvest"}
-            value="Oct 14 – Oct 16"
-            subtitle={`Peak Moisture Window`}
+            title={d.cardHarvest?.title || "Predictive Harvest Window"}
+            value={(() => {
+              const today = new Date();
+              const s = new Date(today.getTime() + 2 * 86400000);
+              const e = new Date(today.getTime() + 4 * 86400000);
+              return `${s.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`;
+            })()}
+            subtitle="Peak Moisture Window"
             badgeText="Optimal"
             badgeColor="amber"
             icon={Calendar}

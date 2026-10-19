@@ -46,6 +46,7 @@ const put  = (path, body)  => request('PUT',  path, body);
 export const authAPI = {
   login:         (email, password) => post('/auth/login',    { email, password }),
   register:      (payload)         => post('/auth/register', payload),
+  googleLogin:   (credential)      => post('/auth/google',   { credential }),
   updateProfile: (payload)         => put('/auth/profile',   payload),
 };
 

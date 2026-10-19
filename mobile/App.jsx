@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import SplashScreen from './screens/SplashScreen';
 import AuthScreen from './screens/AuthScreen';
 import DashboardScreen from './screens/DashboardScreen';
@@ -20,6 +21,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [lang, setLang] = useState('en');
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [leafRefreshTrigger, setLeafRefreshTrigger] = useState(0);
 
   // Modals state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -103,32 +105,36 @@ export default function App() {
 
   if (currentScreen === 'splash') {
     return (
-      <SplashScreen
-        t={t}
-        onFinish={() => {
-          const storedToken = localStorage.getItem('token');
-          const storedUser = localStorage.getItem('user');
-          if ((user || storedUser) && storedToken) {
-            setCurrentScreen('dashboard');
-          } else {
-            setCurrentScreen('auth');
-          }
-        }}
-      />
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+        <SplashScreen
+          t={t}
+          onFinish={() => {
+            const storedToken = localStorage.getItem('token');
+            const storedUser = localStorage.getItem('user');
+            if ((user || storedUser) && storedToken) {
+              setCurrentScreen('dashboard');
+            } else {
+              setCurrentScreen('auth');
+            }
+          }}
+        />
+      </GoogleOAuthProvider>
     );
   }
 
   if (currentScreen === 'auth') {
     return (
-      <AuthScreen
-        t={t}
-        lang={lang}
-        setLang={setLang}
-        onLoginSuccess={(userData) => {
-          setUser(userData);
-          setCurrentScreen('dashboard');
-        }}
-      />
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+        <AuthScreen
+          t={t}
+          lang={lang}
+          setLang={setLang}
+          onLoginSuccess={(userData) => {
+            setUser(userData);
+            setCurrentScreen('dashboard');
+          }}
+        />
+      </GoogleOAuthProvider>
     );
   }
 
@@ -164,10 +170,17 @@ export default function App() {
             lang={lang}
             onUserUpdate={handleUpdateUser}
             isDarkMode={isDarkMode}
+            refreshTrigger={leafRefreshTrigger}
           />
         )}
         {currentScreen === 'harvest' && <HarvestSchedulerScreen t={t} isDarkMode={isDarkMode} />}
-        {currentScreen === 'leaf' && <LeafQualityScreen t={t} isDarkMode={isDarkMode} />}
+        {currentScreen === 'leaf' && (
+          <LeafQualityScreen
+            t={t}
+            isDarkMode={isDarkMode}
+            onScanComplete={() => setLeafRefreshTrigger(prev => prev + 1)}
+          />
+        )}
         {currentScreen === 'feeding' && <FeedingOptimizerScreen t={t} isDarkMode={isDarkMode} />}
         {currentScreen === 'predict' && <ProductionPredictionScreen t={t} isDarkMode={isDarkMode} />}
         {currentScreen === 'analytics' && (
