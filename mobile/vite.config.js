@@ -7,7 +7,8 @@ export default defineConfig({
     port: 3000
   },
   define: {
-    // Map GOOGLE_CLIENT_ID (set in Vercel/Render) to frontend-accessible var
-    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '')
+    // Map non-VITE_ env vars (set in Vercel) to frontend-accessible vars
+    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || ''),
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.API_URL || process.env.VITE_API_URL || 'http://localhost:5000/api')
   }
 });
