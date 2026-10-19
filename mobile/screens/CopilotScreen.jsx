@@ -1,6 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, User, Sparkles, RefreshCw, Mic, MicOff } from 'lucide-react';
 import { copilotAPI } from '../services/api';
+
+// Typewriter component — streams text word by word
+function TypewriterText({ text, onDone }) {
+  const [displayed, setDisplayed] = useState('');
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    setDisplayed('');
+    indexRef.current = 0;
+    const words = text.split(' ');
+    const interval = setInterval(() => {
+      if (indexRef.current < words.length) {
+        setDisplayed(prev => (prev ? prev + ' ' : '') + words[indexRef.current]);
+        indexRef.current++;
+      } else {
+        clearInterval(interval);
+        if (onDone) onDone();
+      }
+    }, 35);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <span>{displayed}</span>;
+}
 
 // Robust voice input — tries native Android first, then Web Speech API
 function startVoiceInput(langCode, onResult, onEnd) {
@@ -98,12 +122,18 @@ export default function CopilotScreen({ user, summary }) {
   const [messages, setMessages] = useState([
     {
       sender: 'copilot',
-      text: `Namaste ${farmerName}! I am your Reshme AI Copilot. Ask me in English, Kannada, Hindi, Telugu, Tamil, or Malayalam with real-time live metrics from your farm.`
+      text: `Namaste ${farmerName}! I am your Reshme AI Copilot. Ask me in English, Kannada, Hindi, Telugu, Tamil, or Malayalam with real-time live metrics from your farm.`,
+      done: true
     }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const langCodes = [
     { code: 'en', label: 'English', speech: 'en-US' },
@@ -137,14 +167,14 @@ export default function CopilotScreen({ user, summary }) {
       ml: `നമസ്കാരം ${farmerName}! ഞാൻ നിങ്ങളുടെ പട്ട് എഐ സഹായിയാണ്. ഇല വിളവെടുപ്പ്, തീറ്റ ക്രമം, കൂട് വിളവ് എന്നിവയെക്കുറിച്ച് ചോദിക്കുക.`
     }[newLang];
 
-    setMessages(prev => [...prev, { sender: 'copilot', text: welcomeMsg }]);
+    setMessages(prev => [...prev, { sender: 'copilot', text: welcomeMsg, done: true }]);
   };
 
   const handleSend = async (textToSend) => {
     const text = textToSend || input;
     if (!text.trim()) return;
 
-    const newMessages = [...messages, { sender: 'user', text }];
+    const newMessages = [...messages, { sender: 'user', text, done: true }];
     setMessages(newMessages);
     if (!textToSend) setInput('');
     setLoading(true);
@@ -157,38 +187,27 @@ export default function CopilotScreen({ user, summary }) {
       });
 
       const replyText = res.reply || res.data?.reply || 'Analyzing farm metrics...';
-      setMessages(prev => [...prev, { sender: 'copilot', text: replyText }]);
+      setMessages(prev => [...prev, { sender: 'copilot', text: replyText, done: false }]);
     } catch (err) {
       let replyText = "";
-      const qLower = text.toLowerCase();
       const leafScore = summary?.leafQuality?.score || 88;
       const leafSuitability = summary?.leafQuality?.suitability || "Suitable for 5th Instar";
       const harvestWindow = summary?.harvest?.window || "Sept 17 – Sept 19, 2026";
       const harvestYield = summary?.harvest?.expectedYieldKg || 145;
       const feedingToday = summary?.feeding?.recommendedTodayKg || 18.2;
-      const feedingCount = summary?.feeding?.feedingsPerDay || 4;
-      const perFeeding = summary?.feeding?.kgPerFeeding || 4.55;
-      const silkworms = summary?.feeding?.silkwormCount || 20000;
       const instar = summary?.feeding?.batchInstar || "5th Instar";
       const cocoonYield = summary?.cocoon?.predictedYieldKg || 42.6;
       const shellRatio = summary?.cocoon?.shellRatioPct || 22.5;
-      const silkYield = summary?.silk?.predictedYieldKg || 8.7;
 
       if (lang === 'kn') {
-        replyText = `📊 **ಲೈವ್ ಎಲೆ ಗುಣಮಟ್ಟ:** ${leafScore}/100 (${leafSuitability})\n📅 **ಕೊಯ್ಲು ಅವಧಿ:** ${harvestWindow} (${harvestYield} ಕೆಜಿ)\n🌿 **ಇಂದಿನ ಆಹಾರ:** ${feedingToday} ಕೆಜಿ/ದಿನ (${instar})\n🧵 **ಅಂದಾಜು ಗೂಡು:** ${cocoonYield} ಕೆಜಿ (${shellRatio}% ಶೆಲ್)`;
+        replyText = `📊 ಲೈವ್ ಎಲೆ ಗುಣಮಟ್ಟ: ${leafScore}/100\n📅 ಕೊಯ್ಲು: ${harvestWindow} (${harvestYield} ಕೆಜಿ)\n🌿 ಆಹಾರ: ${feedingToday} ಕೆಜಿ/ದಿನ (${instar})\n🧵 ಗೂಡು: ${cocoonYield} ಕೆಜಿ`;
       } else if (lang === 'hi') {
-        replyText = `📊 **पत्ती की गुणवत्ता:** ${leafScore}/100 (${leafSuitability})\n📅 **कटाई का समय:** ${harvestWindow} (${harvestYield} किग्रा)\n🌿 **दैनिक आहार:** ${feedingToday} किग्रा/दिन (${instar})\n🧵 **अनुमानित कोकून:** ${cocoonYield} किग्रा (${shellRatio}% शेल अनुपात)`;
-      } else if (lang === 'te') {
-        replyText = `📊 **ఆకు నాణ్యత:** ${leafScore}/100 (${leafSuitability})\n📅 **కోత సమయం:** ${harvestWindow} (${harvestYield} కేజీలు)\n🌿 **ఈరోజు మేత:** ${feedingToday} కేజీలు/రోజు (${instar})\n🧵 **అంచనా కకూన్లు:** ${cocoonYield} కేజీలు (${shellRatio}% షెల్)`;
-      } else if (lang === 'ta') {
-        replyText = `📊 **இலை தரம்:** ${leafScore}/100 (${leafSuitability})\n📅 **அறுவடை காலம்:** ${harvestWindow} (${harvestYield} கிலோ)\n🌿 **இன்றைய உணவு:** ${feedingToday} கிலோ/நாள் (${instar})\n🧵 **எதிர்பார்க்கப்படும் கூடு:** ${cocoonYield} கிலோ (${shellRatio}% ஷெல்)`;
-      } else if (lang === 'ml') {
-        replyText = `📊 **ഇല ഗുണനിലവാരം:** ${leafScore}/100 (${leafSuitability})\n📅 **വിളവെടുപ്പ് സമയം:** ${harvestWindow} (${harvestYield} കിലോ)\n🌿 **ഇന്നത്തെ തീറ്റ:** ${feedingToday} കിലോ/ദിവസം (${instar})\n🧵 **പ്രതീക്ഷിക്കുന്ന കൂട്:** ${cocoonYield} കിലോ (${shellRatio}% ഷെൽ)`;
+        replyText = `📊 पत्ती गुणवत्ता: ${leafScore}/100\n📅 कटाई: ${harvestWindow}\n🌿 आहार: ${feedingToday} किग्रा/दिन\n🧵 कोकून: ${cocoonYield} किग्रा`;
       } else {
-        replyText = `📊 **Live Leaf Quality:** ${leafScore}/100 (${leafSuitability})\n📅 **Harvest Window:** ${harvestWindow} (${harvestYield} kg)\n🌿 **Feeding Today:** ${feedingToday} kg/day (${instar})\n🧵 **Predicted Cocoons:** ${cocoonYield} kg (${shellRatio}% shell)`;
+        replyText = `📊 Leaf Quality: ${leafScore}/100 (${leafSuitability})\n📅 Harvest: ${harvestWindow} (${harvestYield} kg)\n🌿 Feeding: ${feedingToday} kg/day (${instar})\n🧵 Cocoons: ${cocoonYield} kg (${shellRatio}% shell)`;
       }
 
-      setMessages(prev => [...prev, { sender: 'copilot', text: replyText }]);
+      setMessages(prev => [...prev, { sender: 'copilot', text: replyText, done: false }]);
     } finally {
       setLoading(false);
     }
@@ -264,7 +283,17 @@ export default function CopilotScreen({ user, summary }) {
                   <><span>Copilot</span><Bot className="w-3 h-3 text-emerald-400" /></>
                 )}
               </div>
-              <p className="whitespace-pre-line">{msg.text}</p>
+              <p className="whitespace-pre-line">
+                {msg.sender === 'copilot' && !msg.done
+                  ? <TypewriterText
+                      text={msg.text}
+                      onDone={() => setMessages(prev =>
+                        prev.map((m, i) => i === idx ? { ...m, done: true } : m)
+                      )}
+                    />
+                  : msg.text
+                }
+              </p>
             </div>
           </div>
         ))}
@@ -272,10 +301,11 @@ export default function CopilotScreen({ user, summary }) {
           <div className="flex justify-start">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-xs text-slate-400 flex items-center gap-2">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-              <span>Fetching live metrics...</span>
+              <span>Thinking...</span>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Box with Multi-lingual Voice Typing */}

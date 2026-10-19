@@ -38,7 +38,6 @@ exports.askCopilot = async (req, res) => {
       // Graceful fallback if DB records not yet seeded
     }
 
-    const qLower = question.toLowerCase();
     let answer = "";
 
     // ── 1. Try OpenRouter AI Integration ─────────────────────────────────────
@@ -46,20 +45,27 @@ exports.askCopilot = async (req, res) => {
 
     if (openRouterApiKey) {
       try {
-        const systemPrompt = `You are Reshme AI Copilot, an expert multi-lingual (English and native Kannada ಕನ್ನಡ) AI precision sericulture advisor.
-You assist sericulture farmers with mulberry leaf harvesting, computer-vision leaf quality assessment, silkworm instar feeding optimization, disease prevention, and cocoon/silk yield predictions.
+        const langInstruction = {
+          kn: 'Reply in native Kannada (ಕನ್ನಡ) script only.',
+          hi: 'Reply in Hindi (हिन्दी) only.',
+          te: 'Reply in Telugu (తెలుగు) only.',
+          ta: 'Reply in Tamil (தமிழ்) only.',
+          ml: 'Reply in Malayalam (മലയാളം) only.',
+          en: 'Reply in clear English.'
+        }[language] || 'Reply in clear English.';
 
-Ground your answer in the farmer's live dashboard data:
+        const systemPrompt = `You are Reshme AI Copilot, a friendly and expert AI assistant for sericulture (silk farming) farmers in India. You speak naturally like a real assistant — you can answer any question the farmer asks, whether it is about sericulture, general farming advice, or even casual conversation.
+
+Live farm dashboard data:
 - Active Batch: ${activeBatch ? activeBatch.batchName : 'Batch Sep-A'} (${activeBatch ? activeBatch.silkwormCount : 20000} silkworms, ${activeBatch ? activeBatch.currentInstar : '5th Instar'})
-- Latest Leaf Quality Score: ${latestLeaf ? latestLeaf.qualityScore : 88}/100 (Good - Suitable for 5th Instar)
-- Recommended Harvesting Window: Sept 17 – Sept 19, 2026 (145 kg expected leaf yield)
-- Today's Recommended Leaf Intake: 18.2 kg/day split across 4 feedings (4.55 kg per feed)
-- Predicted Stage 1 Cocoon Yield: 42.6 kg (Grade A quality, 22.5% shell ratio)
-- Predicted Stage 2 Raw Silk Yield: 8.7 kg (14.8% recovery rate, 1150m filament length)
+- Latest Leaf Quality Score: ${latestLeaf ? latestLeaf.qualityScore : 88}/100 (Good — Suitable for 5th Instar)
+- Recommended Harvest Window: Sept 17–19, 2026 (145 kg expected)
+- Today's Feeding: 18.2 kg/day across 4 feedings (4.55 kg each)
+- Predicted Cocoon Yield: 42.6 kg (Grade A, 22.5% shell ratio)
+- Predicted Raw Silk Yield: 8.7 kg (14.8% recovery, 1150m filament)
 
-Language Rule:
-- If the user asks in Kannada or requested Kannada language, reply in clear, supportive native Kannada (ಕನ್ನಡ).
-- If asked in English, reply clearly in concise English. Keep responses friendly, practical, and action-oriented.`;
+Language: ${langInstruction}
+Keep responses concise (2-4 sentences), friendly, and practical. Never repeat the same response for different questions.`;
 
         const aiRes = await axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
@@ -69,8 +75,8 @@ Language Rule:
               { role: 'system', content: systemPrompt },
               { role: 'user', content: question }
             ],
-            temperature: 0.7,
-            max_tokens: 350
+            temperature: 0.8,
+            max_tokens: 400
           },
           {
             headers: {
@@ -79,7 +85,7 @@ Language Rule:
               'HTTP-Referer': 'https://reshme-sericulture.app',
               'X-Title': 'Reshme AI Copilot'
             },
-            timeout: 8000
+            timeout: 10000
           }
         );
 
@@ -94,37 +100,42 @@ Language Rule:
 
     // ── 2. Fallback Rule-Based Grounded Engine (if OpenRouter API call not completed) ───────
     if (!answer) {
-      if (isKn) {
+      const qLower = question.toLowerCase();
+      const isKnLang = isKn || language === 'kn';
+
+      if (isKnLang) {
         if (qLower.includes('ಕೊಯ್ಲು') || qLower.includes('ಎಲೆ') || qLower.includes('ಸಮಯ') || qLower.includes('harvest') || qLower.includes('when')) {
-          answer = "ನಿಮ್ಮ ಹಿಪ್ಪುನೇರಳೆ ತೋಟದ ಎಲೆ ಪಕ್ವತೆ (85%) ಮತ್ತು ಸ್ಥಳೀಯ ಹವಾಮಾನದ ಆಧಾರದ ಮೇಲೆ, ಎಲೆ ಕೊಯ್ಯಲು ಸೆಪ್ಟೆಂಬರ್ 17–19 ರ ನಡುವೆ ಸೂಕ್ತ ಸಮಯವಾಗಿದೆ. ಬೆಳಗಿನ ಮುಂಜಾನೆ ಎಲೆ ಕೊಯ್ಯುವುದು ಪೌಷ್ಟಿಕಾಂಶ ಕಾಪಾಡಲು ಉತ್ತಮ.";
-        } else if (qLower.includes('ಆಹಾರ') || qLower.includes('ಎಷ್ಟು') || qLower.includes('ಖರ್ಚು') || qLower.includes('feed') || qLower.includes('food')) {
-          if (activeBatch) {
-            answer = `ನಿಮ್ಮ ಸಕ್ರಿಯ ತುಕಡಿ '${activeBatch.batchName}' ನಲ್ಲಿ ${activeBatch.silkwormCount.toLocaleString()} ಹುಳುಗಳಿವೆ (${activeBatch.currentInstar}). ಇಂದಿನ ಶಿಫಾರಸು: ದಿನಕ್ಕೆ ಒಟ್ಟು 32 ಕೆಜಿ ಎಲೆಯನ್ನು 4 ಕಂತುಗಳಲ್ಲಿ (ಬೆಳಿಗ್ಗೆ 6, 11, ಸಂಜೆ 4, ರಾತ್ರಿ 9) ನೀಡಿ.`;
-          } else {
-            answer = "5ನೇ ಹಂತದ (5th Instar) 20,000 ರೇಷ್ಮೆ ಹುಳುಗಳಿಗೆ ದಿನಕ್ಕೆ 18.2 ಕೆಜಿ ತಾಜಾ ಹಿಪ್ಪುನೇರಳೆ ಎಲೆಯನ್ನು 4 ಕಂತುಗಳಲ್ಲಿ ನೀಡುವುದು ಸೂಕ್ತ.";
-          }
-        } else if (qLower.includes('ಇಳುವರಿ') || qLower.includes('ಗೂಡು') || qLower.includes('ರೇಷ್ಮೆ') || qLower.includes('yield') || qLower.includes('cocoon')) {
-          answer = "ಪ್ರಸ್ತುತ ಷರತ್ತುಗಳ ಆಧಾರದ ಮೇಲೆ ಅಂದಾಜು ಗೂಡಿನ ಇಳುವರಿ: 42.6 ಕೆಜಿ (Grade A ದರ್ಜೆ, ಶೆಲ್ ಅನುಪಾತ 22.5%). ರೇಷ್ಮೆ ಇಳುವರಿ ಅಂದಾಜು: 8.7 ಕೆಜಿ ಕಚ್ಚಾ ರೇಷ್ಮೆ.";
-        } else if (qLower.includes('ರೋಗ') || qLower.includes('ನೊಣ') || qLower.includes('ಸುಣ್ಣಕಟ್ಟು') || qLower.includes('disease')) {
-          answer = "ಹುಳುಗಳ ಮಲಗುವ ಹಂತದಲ್ಲಿ ಕೊಠಡಿಯಲ್ಲಿ 70-75% ಶೇಕಡಾ ಆದ್ರತೆ ಮತ್ತು ಸೂಕ್ತ ಗಾಳಿ ಸಂಚಾರ ಕಾಪಾಡಿ. ಬೆಡ್ ಡಿಸ್‌ಇನ್‌ಫೆಕ್ಟೆಂಟ್ (ವಿಜೇತ/ರೇಷ್ಮೆ ಸಂಜೀವಿನಿ) ಅನ್ನು ಪ್ರತಿದಿನ ಹಲ್ಲಿನ ಹಂತದಲ್ಲಿ ಸಿಂಪಡಿಸಿ.";
+          answer = "ನಿಮ್ಮ ಹಿಪ್ಪುನೇರಳೆ ತೋಟದ ಎಲೆ ಪಕ್ವತೆ (85%) ಮತ್ತು ಸ್ಥಳೀಯ ಹವಾಮಾನದ ಆಧಾರದ ಮೇಲೆ, ಎಲೆ ಕೊಯ್ಯಲು ಸೆಪ್ಟೆಂಬರ್ 17–19 ರ ನಡುವೆ ಸೂಕ್ತ ಸಮಯವಾಗಿದೆ.";
+        } else if (qLower.includes('ಆಹಾರ') || qLower.includes('ಎಷ್ಟು') || qLower.includes('feed')) {
+          answer = "5ನೇ ಹಂತದ 20,000 ರೇಷ್ಮೆ ಹುಳುಗಳಿಗೆ ದಿನಕ್ಕೆ 18.2 ಕೆಜಿ ತಾಜಾ ಹಿಪ್ಪುನೇರಳೆ ಎಲೆಯನ್ನು 4 ಕಂತುಗಳಲ್ಲಿ ನೀಡುವುದು ಸೂಕ್ತ.";
+        } else if (qLower.includes('ಇಳುವರಿ') || qLower.includes('ಗೂಡು') || qLower.includes('cocoon')) {
+          answer = "ಪ್ರಸ್ತುತ ಷರತ್ತುಗಳ ಆಧಾರದ ಮೇಲೆ ಅಂದಾಜು ಗೂಡಿನ ಇಳುವರಿ: 42.6 ಕೆಜಿ (Grade A, ಶೆಲ್ 22.5%). ರೇಷ್ಮೆ ಇಳುವರಿ: 8.7 ಕೆಜಿ.";
+        } else if (qLower.includes('ರೋಗ') || qLower.includes('disease')) {
+          answer = "ಕೊಠಡಿಯಲ್ಲಿ 70-75% ಆದ್ರತೆ ಮತ್ತು 26-28°C ತಾಪಮಾನ ಕಾಪಾಡಿ. ಪ್ರತಿ ಹಂತದ ನಂತರ ಬೆಡ್ ಡಿಸ್‌ಇನ್‌ಫೆಕ್ಟೆಂಟ್ ಸಿಂಪಡಿಸಿ.";
         } else {
-          answer = "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ರೇಷ್ಮೆ ಕೃಷಿ AI ಸಹಾಯಕ (ReshmeAI Copilot). ಹಿಪ್ಪುನೇರಳೆ ಎಲೆ ಕೊಯ್ಲು, ಆಹಾರ ಪ್ರಮಾಣ, ರೋಗ ತಡೆಗಟ್ಟುವಿಕೆ ಮತ್ತು ಗೂಡಿನ ಇಳುವರಿ ಬಗ್ಗೆ ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕೇಳಿ.";
+          answer = "ನಾನು ನಿಮ್ಮ ರೇಷ್ಮೆ ಕೃಷಿ AI ಸಹಾಯಕ. ಎಲೆ ಕೊಯ್ಲು, ಆಹಾರ, ರೋಗ ತಡೆ ಅಥವಾ ಗೂಡಿನ ಇಳುವರಿ ಬಗ್ಗೆ ಕೇಳಿ — ನಾನು ಸಹಾಯ ಮಾಡುತ್ತೇನೆ.";
         }
       } else {
-        if (qLower.includes('harvest') || qLower.includes('when') || qLower.includes('leaf maturity')) {
-          answer = "Based on your current leaf maturity (85%) and recent weather forecasts, the recommended mulberry harvesting window is September 17–19. Early morning harvest retains maximum moisture content.";
-        } else if (qLower.includes('feed') || qLower.includes('how much') || qLower.includes('quantity')) {
-          if (activeBatch) {
-            answer = `Your active batch '${activeBatch.batchName}' has ${activeBatch.silkwormCount.toLocaleString()} silkworms in the ${activeBatch.currentInstar}. Based on leaf quality score (${latestLeaf ? latestLeaf.qualityScore : 88}/100), approximately 18.2 kg of leaves split into 4 feeds (06:00, 11:00, 16:00, 21:00) is recommended today.`;
-          } else {
-            answer = "For a standard 20,000 silkworm batch in 5th instar, approximately 18.2 kg of leaves per day split into 4 feedings is recommended.";
-          }
-        } else if (qLower.includes('yield') || qLower.includes('cocoon') || qLower.includes('silk') || qLower.includes('forecast')) {
-          answer = "Based on current batch feeding metrics, expected Stage 1 cocoon harvest is 42.6 kg (Grade A quality, 22.5% shell ratio), yielding approx 8.7 kg raw silk.";
-        } else if (qLower.includes('disease') || qLower.includes('flacherie') || qLower.includes('muscardine')) {
-          answer = "Ensure strict rearing house hygiene: maintain 26-28°C temp, 70-75% RH, and apply bed disinfectants after every instar moult to prevent Flacherie or Muscardine disease.";
+        if (qLower.includes('harvest') || qLower.includes('leaf maturity') || qLower.includes('when to')) {
+          answer = "Based on your leaf maturity (85%) and weather data, the recommended mulberry harvest window is Sept 17–19. Early morning harvest retains maximum moisture and nutrition.";
+        } else if (qLower.includes('feed') || qLower.includes('how much') || qLower.includes('quantity') || qLower.includes('food')) {
+          answer = activeBatch
+            ? `Your batch '${activeBatch.batchName}' has ${activeBatch.silkwormCount.toLocaleString()} silkworms in ${activeBatch.currentInstar}. Recommended: 18.2 kg/day split across 4 feedings (06:00, 11:00, 16:00, 21:00).`
+            : "For 20,000 silkworms in 5th instar, feed 18.2 kg/day across 4 sessions for optimal growth.";
+        } else if (qLower.includes('yield') || qLower.includes('cocoon') || qLower.includes('silk') || qLower.includes('forecast') || qLower.includes('predict')) {
+          answer = "Current forecast: 42.6 kg cocoon yield (Grade A, 22.5% shell ratio), producing ~8.7 kg raw silk at 14.8% recovery rate.";
+        } else if (qLower.includes('disease') || qLower.includes('flacherie') || qLower.includes('muscardine') || qLower.includes('prevent')) {
+          answer = "Maintain 26-28°C, 70-75% RH in the rearing house. Apply bed disinfectants after every instar moult to prevent Flacherie or Muscardine.";
+        } else if (qLower.includes('dashboard') || qLower.includes('summary') || qLower.includes('overview') || qLower.includes('status')) {
+          answer = `📊 Dashboard Summary:\n• Leaf Quality: ${latestLeaf?.qualityScore || 88}/100 (Good)\n• Harvest Window: Sept 17–19, 2026\n• Feeding Today: 18.2 kg/day (4 sessions)\n• Cocoon Forecast: 42.6 kg | Silk: 8.7 kg`;
+        } else if (qLower.includes('built') || qLower.includes('who made') || qLower.includes('how were you') || qLower.includes('what are you')) {
+          answer = "I'm Reshme AI Copilot, built to help sericulture farmers with real-time farm intelligence — from leaf quality and harvest timing to feeding schedules and silk yield forecasts.";
+        } else if (qLower.includes('language') || qLower.includes('kannada') || qLower.includes('hindi') || qLower.includes('telugu')) {
+          answer = "Yes! You can ask me in Kannada, Hindi, Telugu, Tamil, or Malayalam. Just switch the language using the buttons at the top and ask your question.";
+        } else if (qLower.includes('weather') || qLower.includes('rain') || qLower.includes('temperature')) {
+          answer = "Current conditions are suitable for rearing. Maintain rearing house temperature at 26-28°C and humidity at 70-75% regardless of outside weather.";
         } else {
-          answer = "Hello! I am your AI Sericulture Copilot. You can ask me about mulberry harvest scheduling, leaf quality evaluation, silkworm feeding optimizer, disease control, and cocoon/silk yield forecasts in English or Kannada (ಕನ್ನಡ).";
+          answer = `I'm your Reshme AI Copilot. Your farm is doing well — leaf quality at ${latestLeaf?.qualityScore || 88}/100, harvest window Sept 17–19, and cocoon forecast at 42.6 kg. Ask me anything about your farm!`;
         }
       }
     }
