@@ -32,12 +32,22 @@ const SEASON_OPTIONS = ['normal', 'summer', 'monsoon', 'winter'];
 
 export default function HarvestSchedulerScreen({ t }) {
   const h = t?.harvest || {};
+  // ── Compute dynamic harvest window (today + 2 to today + 4 days) ──────────
+  const computeDefaultWindow = () => {
+    const today = new Date();
+    const start = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const end = new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000);
+    const startStr = start.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    const endStr = end.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${startStr} – ${endStr}`;
+  };
+
   const [farms, setFarms] = useState([]);
   const [selectedFarmId, setSelectedFarmId] = useState('');
   const [inputs, setInputs] = useState(DEFAULT_INPUTS);
   const [prediction, setPrediction] = useState({
     status: 'optimal',
-    recommended_window: 'Sept 17 – Sept 19, 2026',
+    recommended_window: computeDefaultWindow(),
     days_remaining: 2,
     expected_yield_kg: 145,
     leaf_maturity_pct: 82,
