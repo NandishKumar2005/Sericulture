@@ -44,6 +44,18 @@ jobs:
         working-directory: mobile
         run: npx cap sync android
 
+      - name: Ensure RECORD_AUDIO permission in AndroidManifest
+        run: |
+          MANIFEST="mobile/android/app/src/main/AndroidManifest.xml"
+          # Inject RECORD_AUDIO if not already present
+          if ! grep -q "RECORD_AUDIO" "$MANIFEST"; then
+            sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />|' "$MANIFEST"
+            echo "✓ Injected RECORD_AUDIO permission"
+          else
+            echo "✓ RECORD_AUDIO already present"
+          fi
+          grep "permission" "$MANIFEST"
+
       - name: Inject Custom App Icon
         run: |
           sudo apt-get install -y imagemagick
@@ -89,6 +101,22 @@ jobs:
           mkdir -p output_apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk output_apk/ReshmeAI-v1.0.0.apk
           ls -lh output_apk/
+
+      - name: Update Vercel APK copy
+        run: |
+          cp output_apk/ReshmeAI-v1.0.0.apk web/public/ReshmeAI-v1.0.0.apk
+          echo "✓ Updated web/public APK"
+          ls -lh web/public/ReshmeAI-v1.0.0.apk
+
+      - name: Commit updated APK to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web/public/ReshmeAI-v1.0.0.apk
+          git diff --staged --quiet || git commit -m "ci: update Vercel APK with latest build [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4

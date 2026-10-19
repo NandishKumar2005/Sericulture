@@ -677,7 +677,7 @@ MongoDB Atlas
 
 ## Image Storage
 
-Cloudinary
+Base64 encoding (images are sent as base64 strings directly in the request body and forwarded to the ML service; no external image storage service is used)
 
 ---
 
@@ -734,8 +734,9 @@ GitHub
              +-------------+-------------+
              |                           |
              v                           v
-       MongoDB Atlas                Cloudinary
-       Application Data             Leaf Images
+       MongoDB Atlas             Base64 Images
+       Application Data          (in-request, no
+             |                   external storage)
              |
              |
              v

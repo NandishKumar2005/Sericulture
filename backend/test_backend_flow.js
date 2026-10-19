@@ -112,7 +112,7 @@ async function runVerification() {
       .set('Authorization', `Bearer ${token}`)
       .send({
         farmId,
-        imageUrl: 'https://cloudinary.com/sample_leaf.jpg',
+        imageUrl: 'base64:sample_leaf_base64_ref...',
         qualityScore: 88,
         qualityCategory: 'Good',
         maturity: 'Optimal',
