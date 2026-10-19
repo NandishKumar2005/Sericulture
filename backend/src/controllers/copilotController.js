@@ -11,7 +11,7 @@ function isKannadaText(str) {
   return /[\u0C80-\u0CFF]/.test(str);
 }
 
-// @desc Ask AI Copilot (Powered by OpenAI GPT + Multi-lingual Kannada & English farmer assistant)
+// @desc Ask AI Copilot (Powered by OpenRouter AI + Multi-lingual Kannada & English farmer assistant)
 // @route POST /api/copilot
 exports.askCopilot = async (req, res) => {
   try {
@@ -41,10 +41,10 @@ exports.askCopilot = async (req, res) => {
     const qLower = question.toLowerCase();
     let answer = "";
 
-    // ── 1. Try OpenAI GPT-4o-mini Integration ────────────────────────────────
-    const openAiApiKey = process.env.OPENAI_API_KEY;
+    // ── 1. Try OpenRouter AI Integration ─────────────────────────────────────
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
-    if (openAiApiKey) {
+    if (openRouterApiKey) {
       try {
         const systemPrompt = `You are Reshme AI Copilot, an expert multi-lingual (English and native Kannada ಕನ್ನಡ) AI precision sericulture advisor.
 You assist sericulture farmers with mulberry leaf harvesting, computer-vision leaf quality assessment, silkworm instar feeding optimization, disease prevention, and cocoon/silk yield predictions.
@@ -62,9 +62,9 @@ Language Rule:
 - If asked in English, reply clearly in concise English. Keep responses friendly, practical, and action-oriented.`;
 
         const aiRes = await axios.post(
-          'https://api.openai.com/v1/chat/completions',
+          'https://openrouter.ai/api/v1/chat/completions',
           {
-            model: 'gpt-4o-mini',
+            model: 'google/gemma-3-12b-it:free',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: question }
@@ -74,22 +74,25 @@ Language Rule:
           },
           {
             headers: {
-              'Authorization': `Bearer ${openAiApiKey}`,
-              'Content-Type': 'application/json'
+              'Authorization': `Bearer ${openRouterApiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://reshme-sericulture.app',
+              'X-Title': 'Reshme AI Copilot'
             },
             timeout: 8000
           }
         );
 
-        if (aiRes.data?.choices?.[0]?.message?.content) {
-          answer = aiRes.data.choices[0].message.content.trim();
+        const replyText = aiRes.data?.choices?.[0]?.message?.content;
+        if (replyText) {
+          answer = replyText.trim();
         }
-      } catch (openAiErr) {
-        console.error("OpenAI API call fallback:", openAiErr?.response?.data || openAiErr?.message);
+      } catch (openRouterErr) {
+        console.error("OpenRouter API call fallback:", openRouterErr?.response?.data || openRouterErr?.message);
       }
     }
 
-    // ── 2. Fallback Rule-Based Grounded Engine (if OpenAI API call not completed) ───────
+    // ── 2. Fallback Rule-Based Grounded Engine (if OpenRouter API call not completed) ───────
     if (!answer) {
       if (isKn) {
         if (qLower.includes('ಕೊಯ್ಲು') || qLower.includes('ಎಲೆ') || qLower.includes('ಸಮಯ') || qLower.includes('harvest') || qLower.includes('when')) {
