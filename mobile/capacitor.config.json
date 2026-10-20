@@ -13,7 +13,7 @@
       "scopes": ["profile", "email"],
       "androidClientId": "821368596969-o76smk2hdvadmj2uq5af6las5m6dpb70.apps.googleusercontent.com",
       "serverClientId": "821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": true
+      "forceCodeForRefreshToken": false
     }
   },
   "server": {
