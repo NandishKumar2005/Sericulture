@@ -7,9 +7,8 @@ export default defineConfig({
     port: 3000
   },
   define: {
-    // Only map non-VITE_ vars from Vercel to VITE_ vars
-    // VITE_ prefixed vars are handled natively by Vite — do not override them here
-    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.API_URL || process.env.VITE_API_URL || 'http://localhost:5000/api'),
-    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '')
+    // Only remap non-VITE_ vars (e.g. from Vercel dashboard) to VITE_ names
+    // VITE_GOOGLE_CLIENT_ID is handled natively by Vite from .env files — do NOT define it here
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.API_URL || process.env.VITE_API_URL || 'http://localhost:5000/api')
   }
 });
