@@ -8,6 +8,11 @@
   "plugins": {
     "SpeechRecognition": {
       "language": "en-US"
+    },
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
     }
   },
   "server": {

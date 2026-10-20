@@ -47,6 +47,21 @@ jobs:
         working-directory: mobile
         run: npx cap sync android
 
+      - name: Generate stable debug keystore & print SHA-1
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "✓ Generated new debug keystore"
+          fi
+          echo "SHA-1 fingerprint:"
+          keytool -keystore ~/.android/debug.keystore -list -v \
+            -alias androiddebugkey -storepass android -keypass android \
+            | grep "SHA1:"
+
       - name: Ensure RECORD_AUDIO permission in AndroidManifest
         run: |
           MANIFEST="mobile/android/app/src/main/AndroidManifest.xml"
