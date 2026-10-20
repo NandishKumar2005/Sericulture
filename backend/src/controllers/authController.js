@@ -70,17 +70,18 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, phone, password } = req.body;
-    const identifier = (email || phone || '').trim().toLowerCase();
 
-    if (!identifier || !password) {
+    // Accept either email or phone as identifier
+    const emailId = (email || '').trim().toLowerCase();
+    const phoneId = (phone || '').trim();
+
+    if ((!emailId && !phoneId) || !password) {
       return res.status(400).json({ success: false, message: 'Please provide phone number/email ID and password' });
     }
 
     const conditions = [];
-    if (identifier) {
-      conditions.push({ email: identifier });
-      conditions.push({ phone: identifier });
-    }
+    if (emailId) conditions.push({ email: emailId });
+    if (phoneId) conditions.push({ phone: phoneId });
 
     const user = await User.findOne({ $or: conditions });
 

@@ -69,52 +69,67 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
       let res;
       if (isRegister) {
         if (!formData.name.trim()) throw new Error('Full Name is required');
-        if (!formData.phone.trim() && !formData.email.trim()) throw new Error('Mobile Number or Email is required');
+        if (!formData.phone.trim()) throw new Error('Mobile Number is required');
+        if (!formData.email.trim()) throw new Error('Email ID is required');
         if (!formData.password) throw new Error('Password is required');
+
+        // Validate email format — must be a real email (e.g. @gmail.com)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email.trim())) {
+          throw new Error('Please enter a valid email address (e.g. farmer@gmail.com)');
+        }
+
+        // Validate phone — must be 10 digits
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(formData.phone.trim())) {
+          throw new Error('Please enter a valid 10-digit mobile number');
+        }
 
         res = await authAPI.register({
           name: formData.name.trim(),
           phone: formData.phone.trim(),
-          email: formData.email.trim() || undefined,
+          email: formData.email.trim(),
           password: formData.password,
           location: formData.location.trim() || 'Karnataka, India'
         });
       } else {
-        const identifier = formData.phone.trim() || formData.email.trim();
+        const identifier = formData.phone.trim();
         if (!identifier || !formData.password) {
           throw new Error('Please enter mobile number/email and password');
         }
 
-        res = await authAPI.login(identifier, formData.password);
+        // Determine if identifier is email or phone and send accordingly
+        const isEmail = identifier.includes('@');
+        res = await authAPI.login(
+          isEmail ? identifier : undefined,
+          formData.password,
+          isEmail ? undefined : identifier
+        );
       }
 
-      const token = res.token || res.data?.token || `valid_jwt_token_${Date.now()}`;
-      const userProfile = res.user || res.data?.user || {
-        name: formData.name.trim() || 'Reshme Farmer',
-        phone: formData.phone.trim(),
-        email: formData.email.trim(),
-        location: formData.location.trim() || 'Karnataka, India'
-      };
+      const token = res.token || res.data?.token;
+      const userProfile = res.user || res.data?.user;
+
+      if (!token || !userProfile) {
+        throw new Error('Authentication failed. Please try again.');
+      }
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userProfile));
 
       onLoginSuccess(userProfile);
     } catch (err) {
-      console.warn('Auth API Notice:', err.message);
-
       const msg = err.message || 'Authentication failed.';
-      const isUnregistered = msg.toLowerCase().includes('not found') || 
-                             msg.toLowerCase().includes('invalid credentials') || 
+      const isUnregistered = msg.toLowerCase().includes('not found') ||
+                             msg.toLowerCase().includes('invalid credentials') ||
                              msg.toLowerCase().includes('not registered') ||
                              msg.toLowerCase().includes('401') ||
                              msg.toLowerCase().includes('404');
 
       if (!isRegister && isUnregistered) {
-        setErrorMessage(lang === 'kn' 
-          ? 'ಖಾತೆ ನೋಂದಾಯಿಸಲಾಗಿಲ್ಲ ಅಥವಾ ತಪ್ಪು ವಿವರಗಳು. ದಯವಿಟ್ಟು ಹೊಸ ಖಾತೆ ತೆರೆಯಿರಿ.' 
-          : 'Account not registered or invalid details. Please create a new account.');
-        // Automatically switch to Register tab for convenience
+        setErrorMessage(lang === 'kn'
+          ? 'ಖಾತೆ ನೋಂದಾಯಿಸಲಾಗಿಲ್ಲ ಅಥವಾ ತಪ್ಪು ವಿವರಗಳು. ದಯವಿಟ್ಟು ಹೊಸ ಖಾತೆ ತೆರೆಯಿರಿ.'
+          : 'Account not found or incorrect password. Please check your details or create a new account.');
         setIsRegister(true);
       } else {
         setErrorMessage(msg);
@@ -233,8 +248,8 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
                 <input
                   type="text"
                   required
-                  value={formData.phone || formData.email}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value, email: e.target.value })}
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="Enter mobile number or email ID"
                   className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
