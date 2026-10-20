@@ -1,0 +1,51 @@
+{
+  "project_info": {
+    "project_number": "821368596969",
+    "project_id": "project-326fbb74-cce4-4db1-994",
+    "storage_bucket": "project-326fbb74-cce4-4db1-994.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821368596969:android:ebc870eb781a816a10c378",
+        "android_client_info": {
+          "package_name": "com.reshmeai.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "821368596969-o76smk2hdvadmj2uq5af6las5m6dpb70.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.reshmeai.app",
+            "certificate_hash": "9e65eac3a3a47ad079bec2dd5f6eb78cc4c7b41d"
+          }
+        },
+        {
+          "client_id": "821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5TqeyrnkioQW-GPZ4izd4tasvI7ML-eQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "821368596969-o76smk2hdvadmj2uq5af6las5m6dpb70.apps.googleusercontent.com",
+              "client_type": 1
+            },
+            {
+              "client_id": "821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
