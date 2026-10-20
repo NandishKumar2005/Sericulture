@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Phone, Lock, MapPin, ArrowRight, ShieldCheck, Mail, AlertCircle, Loader2, Globe } from 'lucide-react';
+import { User, Phone, Lock, MapPin, ArrowRight, ShieldCheck, Mail, AlertCircle, Loader2, Globe, CheckCircle2 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import Card from '../components/Card';
 import { authAPI } from '../services/api';
@@ -10,10 +10,11 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: '',
     password: '',
     location: ''
   });
+  // Google-verified email & credential for registration
+  const [googleVerified, setGoogleVerified] = useState(null); // { email, credential }
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -29,16 +30,33 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
   const toggleMode = (registerState) => {
     setIsRegister(registerState);
     setErrorMessage('');
-    setFormData({
-      name: '',
-      phone: '',
-      email: '',
-      password: '',
-      location: ''
-    });
+    setGoogleVerified(null);
+    setFormData({ name: '', phone: '', password: '', location: '' });
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  // Decode JWT payload from Google credential to extract email
+  const decodeGoogleToken = (credential) => {
+    try {
+      const payload = JSON.parse(atob(credential.split('.')[1]));
+      return payload;
+    } catch {
+      return null;
+    }
+  };
+
+  // Called when Google button is clicked in register mode — just captures email, doesn't log in
+  const handleGoogleVerify = (credentialResponse) => {
+    const payload = decodeGoogleToken(credentialResponse.credential);
+    if (!payload?.email_verified || !payload?.email) {
+      setErrorMessage('Google account email could not be verified. Please try again.');
+      return;
+    }
+    setGoogleVerified({ email: payload.email, credential: credentialResponse.credential });
+    setErrorMessage('');
+  };
+
+  // Called when Google button is clicked in login mode — full sign-in
+  const handleGoogleLogin = async (credentialResponse) => {
     setLoading(true);
     setErrorMessage('');
     try {
@@ -66,18 +84,11 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
     setErrorMessage('');
 
     try {
-      let res;
       if (isRegister) {
         if (!formData.name.trim()) throw new Error('Full Name is required');
         if (!formData.phone.trim()) throw new Error('Mobile Number is required');
-        if (!formData.email.trim()) throw new Error('Email ID is required');
         if (!formData.password) throw new Error('Password is required');
-
-        // Validate email — must be a Gmail address to ensure it's a real Google account
-        const emailRegex = /^[^\s@]+@gmail\.com$/i;
-        if (!emailRegex.test(formData.email.trim())) {
-          throw new Error('Only Gmail addresses are accepted (e.g. farmer@gmail.com). Please use your Google account email.');
-        }
+        if (!googleVerified) throw new Error('Please verify your Google account to complete registration.');
 
         // Validate phone — must be 10 digits
         const phoneRegex = /^\d{10}$/;
@@ -85,46 +96,47 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
           throw new Error('Please enter a valid 10-digit mobile number');
         }
 
-        res = await authAPI.register({
+        const res = await authAPI.register({
           name: formData.name.trim(),
           phone: formData.phone.trim(),
-          email: formData.email.trim(),
+          email: googleVerified.email,   // from Google token, not user input
           password: formData.password,
           location: formData.location.trim() || 'Karnataka, India'
         });
+
+        const token = res.token || res.data?.token;
+        const userProfile = res.user || res.data?.user;
+        if (!token || !userProfile) throw new Error('Registration failed. Please try again.');
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userProfile));
+        onLoginSuccess(userProfile);
       } else {
         const identifier = formData.phone.trim();
         if (!identifier || !formData.password) {
           throw new Error('Please enter mobile number/email and password');
         }
 
-        // Determine if identifier is email or phone and send accordingly
         const isEmail = identifier.includes('@');
-        res = await authAPI.login(
+        const res = await authAPI.login(
           isEmail ? identifier : undefined,
           formData.password,
           isEmail ? undefined : identifier
         );
+
+        const token = res.token || res.data?.token;
+        const userProfile = res.user || res.data?.user;
+        if (!token || !userProfile) throw new Error('Authentication failed. Please try again.');
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userProfile));
+        onLoginSuccess(userProfile);
       }
-
-      const token = res.token || res.data?.token;
-      const userProfile = res.user || res.data?.user;
-
-      if (!token || !userProfile) {
-        throw new Error('Authentication failed. Please try again.');
-      }
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userProfile));
-
-      onLoginSuccess(userProfile);
     } catch (err) {
       const msg = err.message || 'Authentication failed.';
       const isUnregistered = msg.toLowerCase().includes('not found') ||
                              msg.toLowerCase().includes('invalid credentials') ||
-                             msg.toLowerCase().includes('not registered') ||
-                             msg.toLowerCase().includes('401') ||
-                             msg.toLowerCase().includes('404');
+                             msg.toLowerCase().includes('not registered');
       const isGoogleOnly = msg.toLowerCase().includes('google button') ||
                            msg.toLowerCase().includes('created with google');
 
@@ -196,24 +208,22 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {isRegister && (
-            <div>
-              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Full Name / ಪೂರ್ಣ ಹೆಸರು</label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  required={isRegister}
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter your full name"
-                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {isRegister ? (
             <>
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Full Name / ಪೂರ್ಣ ಹೆಸರು</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter your full name"
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Phone Number / ದೂರವಾಣಿ ಸಂಖ್ಯೆ</label>
                 <div className="relative">
@@ -229,72 +239,114 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
                 </div>
               </div>
 
+              {/* Google Email Verification Section */}
               <div>
-                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Email ID / ಇಮೇಲ್ ಐಡಿ</label>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">
+                  Google Account Verification
+                </label>
+                {googleVerified ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-emerald-400">Verified</p>
+                      <p className="text-[11px] text-slate-300">{googleVerified.email}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setGoogleVerified(null)}
+                      className="text-[10px] text-slate-400 hover:text-white underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleVerify}
+                        onError={handleGoogleError}
+                        theme="filled_black"
+                        shape="rectangular"
+                        size="medium"
+                        text="continue_with"
+                        logo_alignment="left"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 text-center">
+                      Click above to verify your Google account email
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.passwordLabel || 'Password'}</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="email"
+                    type="password"
                     required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="e.g. farmer@gmail.com"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Enter password"
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.locationLabel || 'Location / District'}</label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Village / District (e.g. Mandya, Karnataka)"
                     className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
             </>
-          ) : (
-            <div>
-              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Mobile Number or Email ID</label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Enter mobile number or email ID"
-                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
           )}
 
-          <div>
-            <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.passwordLabel || 'Password'}</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter password"
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-
-          {isRegister && (
-            <div>
-              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.locationLabel || 'Location / District'}</label>
-              <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Village / District (e.g. Mandya, Karnataka or Malda, WB)"
-                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                />
+          {!isRegister && (
+            <>
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Mobile Number or Email ID</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="Enter mobile number or email ID"
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 mb-1.5 block">{a.passwordLabel || 'Password'}</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Enter password"
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (isRegister && !googleVerified)}
             className="w-full mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-bold py-3 rounded-xl shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
@@ -309,22 +361,24 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
         </form>
 
         <div className="mt-6 text-center pt-4 border-t border-slate-800">
-          {/* Google Sign-In */}
-          <div className="mb-4">
-            <p className="text-xs text-slate-500 mb-3">Or continue with</p>
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                theme="filled_black"
-                shape="rectangular"
-                size="large"
-                text={isRegister ? 'signup_with' : 'signin_with'}
-                logo_alignment="left"
-                width="280"
-              />
+          {/* Google Sign-In for Login */}
+          {!isRegister && (
+            <div className="mb-4">
+              <p className="text-xs text-slate-500 mb-3">Or continue with</p>
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleLogin}
+                  onError={handleGoogleError}
+                  theme="filled_black"
+                  shape="rectangular"
+                  size="large"
+                  text="signin_with"
+                  logo_alignment="left"
+                  width="280"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <p className="text-xs text-slate-400">
             {isRegister ? 'Already registered?' : 'New sericulture farmer?'}
