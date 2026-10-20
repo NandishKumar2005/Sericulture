@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor-community/google-auth": "^3.0.4",
+    "capacitor-google-auth": "0.1.8",
     "@react-oauth/google": "^0.12.1",
     "lucide-react": "^0.368.0",
     "react": "^18.2.0",
