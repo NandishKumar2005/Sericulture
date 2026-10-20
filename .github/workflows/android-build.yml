@@ -47,19 +47,14 @@ jobs:
         working-directory: mobile
         run: npx cap sync android
 
-      - name: Generate stable debug keystore & print SHA-1
+      - name: Restore stable debug keystore
         run: |
           mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkey -v -keystore ~/.android/debug.keystore \
-              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android \
-              -dname "CN=Android Debug,O=Android,C=US"
-            echo "✓ Generated new debug keystore"
-          fi
-          echo "SHA-1 fingerprint:"
-          keytool -keystore ~/.android/debug.keystore -list -v \
-            -alias androiddebugkey -storepass android -keypass android \
+          echo "${{ secrets.RESHME_DEBUG_KEYSTORE }}" | base64 -d > ~/.android/reshme_debug.keystore
+          cp ~/.android/reshme_debug.keystore ~/.android/debug.keystore
+          echo "✓ Restored stable debug keystore"
+          keytool -keystore ~/.android/reshme_debug.keystore -list -v \
+            -alias reshmedebug -storepass reshme2026 -keypass reshme2026 \
             | grep "SHA1:"
 
       - name: Ensure RECORD_AUDIO permission in AndroidManifest
