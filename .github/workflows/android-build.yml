@@ -36,6 +36,7 @@ jobs:
         working-directory: mobile
         env:
           VITE_API_URL: https://reshme-backend.onrender.com/api
+          VITE_GOOGLE_CLIENT_ID: 821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com
         run: |
           npm install --legacy-peer-deps
           npm run build
