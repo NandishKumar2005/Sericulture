@@ -16,6 +16,11 @@ exports.register = async (req, res) => {
     const primaryPhone = phone.trim();
     const primaryEmail = email.trim().toLowerCase();
 
+    // Only accept Gmail addresses
+    if (!primaryEmail.endsWith('@gmail.com')) {
+      return res.status(400).json({ success: false, message: 'Only Gmail addresses are accepted. Please use your Google account email (@gmail.com).' });
+    }
+
     const existingUser = await User.findOne({
       $or: [
         { email: primaryEmail },
@@ -87,6 +92,15 @@ exports.login = async (req, res) => {
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
+    }
+
+    // User registered via Google — no password set, must use Google sign-in
+    if (!user.passwordHash) {
+      return res.status(401).json({
+        success: false,
+        message: 'This account was created with Google. Please sign in using the Google button.',
+        useGoogle: true
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);

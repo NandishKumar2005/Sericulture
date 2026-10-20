@@ -73,10 +73,10 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
         if (!formData.email.trim()) throw new Error('Email ID is required');
         if (!formData.password) throw new Error('Password is required');
 
-        // Validate email format — must be a real email (e.g. @gmail.com)
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Validate email — must be a Gmail address to ensure it's a real Google account
+        const emailRegex = /^[^\s@]+@gmail\.com$/i;
         if (!emailRegex.test(formData.email.trim())) {
-          throw new Error('Please enter a valid email address (e.g. farmer@gmail.com)');
+          throw new Error('Only Gmail addresses are accepted (e.g. farmer@gmail.com). Please use your Google account email.');
         }
 
         // Validate phone — must be 10 digits
@@ -125,8 +125,12 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
                              msg.toLowerCase().includes('not registered') ||
                              msg.toLowerCase().includes('401') ||
                              msg.toLowerCase().includes('404');
+      const isGoogleOnly = msg.toLowerCase().includes('google button') ||
+                           msg.toLowerCase().includes('created with google');
 
-      if (!isRegister && isUnregistered) {
+      if (isGoogleOnly) {
+        setErrorMessage('This account was registered via Google. Please use the "Sign in with Google" button below.');
+      } else if (!isRegister && isUnregistered) {
         setErrorMessage(lang === 'kn'
           ? 'ಖಾತೆ ನೋಂದಾಯಿಸಲಾಗಿಲ್ಲ ಅಥವಾ ತಪ್ಪು ವಿವರಗಳು. ದಯವಿಟ್ಟು ಹೊಸ ಖಾತೆ ತೆರೆಯಿರಿ.'
           : 'Account not found or incorrect password. Please check your details or create a new account.');
