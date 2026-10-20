@@ -18,7 +18,7 @@ export async function googleSignIn() {
     // Native Android path — uses Google Sign-In SDK via Capacitor plugin
     const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
     await GoogleAuth.initialize({
-      clientId: '821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com',
+      clientId: '821368596969-o76smk2hdvadmj2uq5af6las5m6dpb70.apps.googleusercontent.com', // Android OAuth client ID
       scopes: ['profile', 'email'],
       grantOfflineAccess: true,
     });

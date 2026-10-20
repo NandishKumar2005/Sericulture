@@ -37,9 +37,11 @@ jobs:
         env:
           VITE_API_URL: https://reshme-backend.onrender.com/api
           VITE_GOOGLE_CLIENT_ID: 821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com
+          VITE_GOOGLE_ANDROID_CLIENT_ID: 821368596969-o76smk2hdvadmj2uq5af6las5m6dpb70.apps.googleusercontent.com
         run: |
           echo "VITE_API_URL=https://reshme-backend.onrender.com/api" > .env.production
           echo "VITE_GOOGLE_CLIENT_ID=821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com" >> .env.production
+          echo "VITE_GOOGLE_ANDROID_CLIENT_ID=821368596969-o76smk2hdvadmj2uq5af6las5m6dpb70.apps.googleusercontent.com" >> .env.production
           npm install --legacy-peer-deps
           npm run build
 
