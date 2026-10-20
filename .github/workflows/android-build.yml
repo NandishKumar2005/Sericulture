@@ -116,7 +116,7 @@ jobs:
           git diff --staged --quiet && echo "No changes to commit" && exit 0
           git commit -m "ci: update Vercel APK with latest build [skip ci]"
           git fetch origin main
-          git rebase origin/main
+          git merge -X theirs origin/main --no-edit
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
