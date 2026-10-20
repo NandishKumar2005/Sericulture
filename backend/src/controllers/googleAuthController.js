@@ -3,7 +3,13 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { JWT_SECRET } = require('../middleware/auth');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client();
+
+// Accept both Web and Android client IDs as valid audiences
+const VALID_AUDIENCES = [
+  process.env.GOOGLE_CLIENT_ID,         // Web client ID
+  process.env.GOOGLE_ANDROID_CLIENT_ID, // Android client ID
+].filter(Boolean);
 
 // @desc  Google OAuth Sign-In / Sign-Up
 // @route POST /api/auth/google
@@ -15,10 +21,10 @@ exports.googleAuth = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Google credential token is required' });
     }
 
-    // Verify the Google ID token
+    // Verify the Google ID token against both Web and Android client IDs
     const ticket = await client.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: VALID_AUDIENCES,
     });
 
     const payload = ticket.getPayload();
