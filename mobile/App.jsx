@@ -105,7 +105,7 @@ export default function App() {
 
   if (currentScreen === 'splash') {
     return (
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+      <GoogleOAuthProvider clientId="821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com">
         <SplashScreen
           t={t}
           onFinish={() => {
@@ -124,7 +124,7 @@ export default function App() {
 
   if (currentScreen === 'auth') {
     return (
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+      <GoogleOAuthProvider clientId="821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com">
         <AuthScreen
           t={t}
           lang={lang}
