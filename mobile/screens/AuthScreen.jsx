@@ -244,7 +244,6 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
       </div>
     );
   };
-  );
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col justify-center max-w-md mx-auto relative overflow-hidden">
