@@ -44,28 +44,47 @@ exports.googleAuth = async (req, res) => {
     const { credential } = req.body;
     if (!credential) return res.status(400).json({ success: false, message: 'Google credential token is required' });
 
-    const audiences = [
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_ANDROID_CLIENT_ID,
-    ].filter(Boolean);
-
     let payload;
+
+    // Try ID token verification first (browser flow)
     try {
-      // Try verifying as ID token first
+      const audiences = [
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_ANDROID_CLIENT_ID,
+      ].filter(Boolean);
       const ticket = await client.verifyIdToken({ idToken: credential, audience: audiences });
       payload = ticket.getPayload();
-    } catch (verifyErr) {
-      console.error('verifyIdToken failed:', verifyErr.message);
-      // Fallback: decode without verification to get user info, then re-verify via Google tokeninfo
-      const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-      const tokenInfo = await tokenInfoRes.json();
-      if (tokenInfo.error || !tokenInfo.email) {
-        return res.status(401).json({ success: false, message: 'Invalid Google token: ' + (tokenInfo.error || verifyErr.message) });
+    } catch (idTokenErr) {
+      // Fallback: treat as access token (APK implicit flow)
+      try {
+        const userInfoRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+          headers: { Authorization: `Bearer ${credential}` },
+        });
+        const userInfo = await userInfoRes.json();
+        if (userInfo.error || !userInfo.email) throw new Error(userInfo.error?.message || 'Invalid access token');
+        payload = {
+          email: userInfo.email,
+          name: userInfo.name,
+          sub: userInfo.sub,
+          email_verified: userInfo.email_verified,
+        };
+      } catch (accessTokenErr) {
+        // Last fallback: Google tokeninfo endpoint
+        const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+        const tokenInfo = await tokenInfoRes.json();
+        if (tokenInfo.error || !tokenInfo.email) {
+          return res.status(401).json({ success: false, message: 'Invalid Google token' });
+        }
+        payload = {
+          email: tokenInfo.email,
+          name: tokenInfo.name,
+          sub: tokenInfo.sub,
+          email_verified: tokenInfo.email_verified === 'true',
+        };
       }
-      payload = { email: tokenInfo.email, name: tokenInfo.name, sub: tokenInfo.sub, email_verified: tokenInfo.email_verified === 'true' };
     }
 
-    if (!payload.email_verified) return res.status(401).json({ success: false, message: 'Google email not verified.' });
+    if (!payload?.email) return res.status(401).json({ success: false, message: 'Could not get email from Google.' });
 
     const user  = await findOrCreateGoogleUser(payload);
     const token = makeJwt(user);

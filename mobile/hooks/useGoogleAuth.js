@@ -1,10 +1,9 @@
 /**
- * useGoogleAuth
- * Both APK and browser use @react-oauth/google via GoogleLogin component.
- * isNativeAndroid() is kept for compatibility but both paths use browser flow.
+ * useGoogleAuth - detects if running in Capacitor native Android
  */
-
-export const isNativeAndroid = () => false; // Always use browser/web flow
+export const isNativeAndroid = () =>
+  typeof window !== 'undefined' &&
+  !!(window.Capacitor?.isNativePlatform?.());
 
 export async function googleSignIn() {
   throw new Error('USE_BROWSER_FLOW');
