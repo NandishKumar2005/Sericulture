@@ -1,11 +1,11 @@
 /**
  * useGoogleAuth
- * - Capacitor APK  → OAuth via @capacitor/browser + localStorage polling
+ * - Capacitor APK  → OAuth via deep link (reshmeai://auth)
  * - Browser/Vercel → @react-oauth/google handles it
  */
 
 const WEB_CLIENT_ID = '821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com';
-const REDIRECT_URI  = 'https://sericulture-iota.vercel.app/auth/callback';
+const REDIRECT_URI  = 'reshmeai://auth'; // Deep link — intercepted by the APK directly
 
 export const isNativeAndroid = () =>
   typeof window !== 'undefined' &&
@@ -36,31 +36,15 @@ async function exchangeCode(code, codeVerifier) {
   return data; // { token, user }
 }
 
-async function processCallbackUrl(url, codeVerifier, state) {
-  const u   = new URL(url);
-  const code = u.searchParams.get('code');
-  const st   = u.searchParams.get('state');
-  const err  = u.searchParams.get('error');
-
-  if (err) throw new Error(`Google denied sign-in: ${err}`);
-  if (st !== state) throw new Error('State mismatch — please try again');
-  if (!code) throw new Error('No auth code received from Google');
-
-  return exchangeCode(code, codeVerifier);
-}
-
 export async function googleSignIn() {
   if (!isNativeAndroid()) throw new Error('USE_BROWSER_FLOW');
 
   const { Browser } = await import('@capacitor/browser');
+  const { App }     = await import('@capacitor/app');
 
   const codeVerifier  = randomString(64);
   const codeChallenge = await sha256Base64Url(codeVerifier);
   const state         = randomString(16);
-
-  // Clear any stale callback
-  localStorage.removeItem('oauth_callback_url');
-  localStorage.removeItem('oauth_callback_time');
 
   const params = new URLSearchParams({
     client_id:             WEB_CLIENT_ID,
@@ -78,53 +62,42 @@ export async function googleSignIn() {
 
   return new Promise((resolve, reject) => {
     let settled = false;
-    let pollInterval = null;
+    let appUrlListener = null;
 
     const finish = async (fn) => {
       if (settled) return;
       settled = true;
-      clearInterval(pollInterval);
+      if (appUrlListener) appUrlListener.remove();
       await Browser.close().catch(() => {});
       fn();
     };
 
-    // Poll localStorage for the callback URL (set by the callback page)
-    const startTime = Date.now();
-    pollInterval = setInterval(async () => {
-      const callbackUrl  = localStorage.getItem('oauth_callback_url');
-      const callbackTime = parseInt(localStorage.getItem('oauth_callback_time') || '0');
+    // Listen for the deep link reshmeai://auth?code=...
+    App.addListener('appUrlOpen', async (event) => {
+      const url = event.url || '';
+      if (!url.startsWith('reshmeai://auth')) return;
 
-      // Only process if callback happened after we opened the browser
-      if (callbackUrl && callbackTime > startTime && callbackUrl.includes('/auth/callback')) {
-        localStorage.removeItem('oauth_callback_url');
-        localStorage.removeItem('oauth_callback_time');
-
-        try {
-          const result = await processCallbackUrl(callbackUrl, codeVerifier, state);
-          finish(() => resolve(result));
-        } catch (e) {
-          finish(() => reject(e));
-        }
-      }
-    }, 500);
-
-    // Also listen for postMessage
-    const msgHandler = async (event) => {
-      const url = event.data?.url || '';
-      if (!url.includes('/auth/callback')) return;
-      window.removeEventListener('message', msgHandler);
       try {
-        const result = await processCallbackUrl(url, codeVerifier, state);
+        // Parse as URL — replace custom scheme with https for URL parsing
+        const parseable = url.replace('reshmeai://auth', 'https://reshmeai.app/auth');
+        const u    = new URL(parseable);
+        const code = u.searchParams.get('code');
+        const st   = u.searchParams.get('state');
+        const err  = u.searchParams.get('error');
+
+        if (err) return finish(() => reject(new Error(`Google denied: ${err}`)));
+        if (st !== state) return finish(() => reject(new Error('State mismatch')));
+        if (!code) return finish(() => reject(new Error('No auth code received')));
+
+        const result = await exchangeCode(code, codeVerifier);
         finish(() => resolve(result));
       } catch (e) {
         finish(() => reject(e));
       }
-    };
-    window.addEventListener('message', msgHandler);
+    }).then(listener => { appUrlListener = listener; });
 
-    // Timeout after 2 min
+    // Timeout
     setTimeout(() => {
-      window.removeEventListener('message', msgHandler);
       finish(() => reject(new Error('Google sign-in timed out')));
     }, 120000);
 

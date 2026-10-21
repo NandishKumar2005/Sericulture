@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/app": "6.0.2",
     "@capacitor/browser": "6.0.3",
     "@codetrix-studio/capacitor-google-auth": "3.4.0-rc.4",
     "@react-oauth/google": "^0.12.1",
