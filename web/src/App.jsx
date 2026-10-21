@@ -998,14 +998,49 @@ export default function App() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="py-8 border-t border-slate-900 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-300">{t.footer.title}</span>
-            <span>•</span>
-            <span>{t.footer.baseline}</span>
+      <footer className="py-10 border-t border-slate-800/60 bg-slate-950 text-xs text-slate-500">
+        <div className="max-w-5xl mx-auto px-6">
+
+          {/* Top row: brand + links */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-6">
+            {/* Brand */}
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-black text-base tracking-tight">ReshmeAI</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-slate-400">{t.footer.baseline}</span>
+            </div>
+
+            {/* Nav links */}
+            <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <a href="#overview" className="hover:text-emerald-400 transition-colors">Overview</a>
+              <a href="#modules" className="hover:text-emerald-400 transition-colors">Modules</a>
+              <a href="#architecture" className="hover:text-emerald-400 transition-colors">Architecture</a>
+              <a href="#download" className="hover:text-emerald-400 transition-colors">Download APK</a>
+              <a href="https://sericulture-iota.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Launch Web App</a>
+            </nav>
           </div>
-          <div>{t.footer.tagline}</div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-800/60 mb-6" />
+
+          {/* Bottom row: legal links + copyright */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Legal links */}
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
+              <span className="text-slate-700">•</span>
+              <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors">Terms of Service</a>
+              <span className="text-slate-700">•</span>
+              <a href="mailto:nandishkumar01122005@gmail.com" className="hover:text-slate-300 transition-colors">Support</a>
+              <span className="text-slate-700">•</span>
+              <a href="https://github.com/NandishKumar2005/Sericulture" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors">GitHub</a>
+            </div>
+
+            {/* Copyright */}
+            <div className="text-slate-600 text-center sm:text-right">
+              © {new Date().getFullYear()} ReshmeAI — AI-Powered Sericulture Decision Support
+            </div>
+          </div>
         </div>
       </footer>
     </div>
