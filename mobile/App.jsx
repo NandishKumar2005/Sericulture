@@ -38,13 +38,17 @@ export default function App() {
   // Restore stored session on startup + handle Google OAuth redirect return
   useEffect(() => {
     try {
-      // Check if we just completed Google OAuth (callback page set this)
-      const googleAuthDone = sessionStorage.getItem('google_auth_done');
-      if (googleAuthDone) {
-        sessionStorage.removeItem('google_auth_done');
-      }
       const storedUser = localStorage.getItem('user');
       const token = localStorage.getItem('token');
+      const googleDone = localStorage.getItem('google_auth_complete');
+
+      if (googleDone && storedUser && token) {
+        localStorage.removeItem('google_auth_complete');
+        setUser(JSON.parse(storedUser));
+        setCurrentScreen('dashboard');
+        return;
+      }
+
       if (storedUser && token) {
         setUser(JSON.parse(storedUser));
         setCurrentScreen('dashboard');
@@ -52,6 +56,23 @@ export default function App() {
     } catch (e) {
       console.warn('Could not restore user session:', e);
     }
+
+    // Poll for Google auth completion (when webview navigates back from callback)
+    const poll = setInterval(() => {
+      try {
+        const done = localStorage.getItem('google_auth_complete');
+        const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        if (done && storedUser && token) {
+          localStorage.removeItem('google_auth_complete');
+          setUser(JSON.parse(storedUser));
+          setCurrentScreen('dashboard');
+          clearInterval(poll);
+        }
+      } catch {}
+    }, 500);
+
+    return () => clearInterval(poll);
   }, []);
 
   // Check for app updates on startup

@@ -10,7 +10,7 @@
                border-top-color: #10b981; border-radius: 50%;
                animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .err { color: #f87171; font-size: 14px; margin-top: 12px; }
+    .err { color: #f87171; font-size: 14px; margin-top: 12px; max-width: 300px; }
   </style>
 </head>
 <body>
@@ -30,43 +30,39 @@
     document.getElementById('err').textContent = 'Google sign-in denied: ' + error;
     return;
   }
-
   if (!code) {
     document.getElementById('err').textContent = 'No auth code received.';
     return;
   }
 
-  // Retrieve PKCE data stored before redirect
   const codeVerifier = sessionStorage.getItem('pkce_verifier');
   const savedState   = sessionStorage.getItem('pkce_state');
-  const mode         = sessionStorage.getItem('pkce_mode') || 'login';
-
-  if (state !== savedState) {
-    document.getElementById('err').textContent = 'State mismatch error. Please try again.';
-    return;
-  }
+  const redirectUri  = window.location.origin + '/auth/callback';
 
   try {
     const res = await fetch('https://reshme-backend.onrender.com/api/auth/google-callback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code,
-        code_verifier: codeVerifier,
-        redirect_uri: window.location.origin + '/auth/callback',
-      }),
+      body: JSON.stringify({ code, code_verifier: codeVerifier, redirect_uri: redirectUri }),
     });
 
     const data = await res.json();
     if (!res.ok || !data.token) throw new Error(data.message || 'Sign-in failed');
 
-    // Store auth data
+    // Store in localStorage for the webview to read when we navigate back
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    sessionStorage.setItem('google_auth_done', '1');
+    localStorage.setItem('google_auth_complete', '1');
 
-    // Navigate back to the app
-    window.location.href = '/';
+    // Try deep link back to APK first
+    const deepLink = 'reshmeai://auth-done';
+    window.location.href = deepLink;
+
+    // Fallback: navigate back to the app root after 1.5s if deep link didn't work
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1500);
+
   } catch (err) {
     document.getElementById('err').textContent = err.message;
   }
