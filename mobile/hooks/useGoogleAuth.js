@@ -5,7 +5,7 @@
  */
 
 const WEB_CLIENT_ID = '821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com';
-const REDIRECT_URI  = 'reshmeai://auth'; // Deep link — intercepted by the APK directly
+const REDIRECT_URI  = 'https://sericulture-iota.vercel.app/auth/callback'; // HTTPS for Google, redirects to deep link
 
 export const isNativeAndroid = () =>
   typeof window !== 'undefined' &&

@@ -7,7 +7,8 @@
            display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
     .msg { text-align: center; }
     .spinner { width: 40px; height: 40px; border: 3px solid #334155;
-               border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+               border-top-color: #10b981; border-radius: 50%;
+               animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
@@ -17,31 +18,20 @@
   <p>Completing sign in...</p>
 </div>
 <script>
-  const currentUrl = window.location.href;
+  // Grab all query params from Google's redirect
+  const params = window.location.search; // ?code=...&state=...
 
-  // Method 1: postMessage to parent (Capacitor webview is the parent)
-  if (window.opener) {
-    window.opener.postMessage({ type: 'oauth_callback', url: currentUrl }, '*');
-    setTimeout(() => window.close(), 500);
-  } else {
-    // Method 2: postMessage to the Capacitor webview via parent frame
-    try {
-      window.parent.postMessage({ type: 'oauth_callback', url: currentUrl }, '*');
-    } catch(e) {}
+  // Redirect to custom scheme — Android intercepts this via intent filter
+  const deepLink = 'reshmeai://auth' + params;
 
-    // Method 3: Use Capacitor App plugin deep link if available
-    try {
-      if (window.Capacitor) {
-        window.Capacitor.Plugins.App?.openUrl?.({ url: currentUrl });
-      }
-    } catch(e) {}
+  // Try deep link redirect immediately
+  window.location.href = deepLink;
 
-    // Method 4: Store in localStorage as fallback for polling
-    try {
-      localStorage.setItem('oauth_callback_url', currentUrl);
-      localStorage.setItem('oauth_callback_time', Date.now().toString());
-    } catch(e) {}
-  }
+  // Fallback: if deep link doesn't work (browser context), show message
+  setTimeout(() => {
+    document.querySelector('.msg').innerHTML =
+      '<p>Sign-in complete. Please return to the ReshmeAI app.</p>';
+  }, 2000);
 </script>
 </body>
 </html>
