@@ -146,16 +146,8 @@ exports.googleCallback = async (req, res) => {
   }
 };
 
-// ── In-memory session store for APK OAuth polling ────────────────────────────
-const oauthSessions = new Map(); // sessionId -> { token, user, error, ts }
-
-// Clean up sessions older than 5 minutes
-setInterval(() => {
-  const cutoff = Date.now() - 5 * 60 * 1000;
-  for (const [id, s] of oauthSessions) {
-    if (s.ts < cutoff) oauthSessions.delete(id);
-  }
-}, 60000);
+// ── MongoDB-backed session store for APK OAuth polling ───────────────────────
+const OAuthSession = require('../models/OAuthSession');
 
 // POST /api/auth/google-session — callback page stores result here
 exports.googleSessionStore = async (req, res) => {
@@ -164,7 +156,11 @@ exports.googleSessionStore = async (req, res) => {
     if (!sessionId) return res.status(400).json({ success: false, message: 'Missing sessionId' });
 
     if (!code) {
-      oauthSessions.set(sessionId, { error: req.body.error || 'No code', ts: Date.now() });
+      await OAuthSession.findOneAndUpdate(
+        { sessionId },
+        { sessionId, error: req.body.error || 'No code', ready: true },
+        { upsert: true, new: true }
+      );
       return res.json({ success: true });
     }
 
@@ -179,7 +175,11 @@ exports.googleSessionStore = async (req, res) => {
     });
     const tokens = await tokenRes.json();
     if (!tokenRes.ok) {
-      oauthSessions.set(sessionId, { error: tokens.error_description || 'Token exchange failed', ts: Date.now() });
+      await OAuthSession.findOneAndUpdate(
+        { sessionId },
+        { sessionId, error: tokens.error_description || 'Token exchange failed', ready: true },
+        { upsert: true, new: true }
+      );
       return res.json({ success: true });
     }
 
@@ -191,19 +191,27 @@ exports.googleSessionStore = async (req, res) => {
     const user    = await findOrCreateGoogleUser(payload);
     const token   = makeJwt(user);
 
-    oauthSessions.set(sessionId, { token, user: userPayload(user), ts: Date.now() });
+    await OAuthSession.findOneAndUpdate(
+      { sessionId },
+      { sessionId, token, user: userPayload(user), ready: true },
+      { upsert: true, new: true }
+    );
     res.json({ success: true });
   } catch (error) {
     console.error('googleSessionStore error:', error.message);
-    res.json({ success: true }); // always 200 so callback page doesn't show error
+    res.json({ success: true });
   }
 };
 
 // GET /api/auth/google-session/:sessionId — APK polls this
-exports.googleSessionPoll = (req, res) => {
-  const session = oauthSessions.get(req.params.sessionId);
-  if (!session) return res.json({ ready: false });
-  oauthSessions.delete(req.params.sessionId);
-  if (session.error) return res.status(401).json({ ready: true, success: false, message: session.error });
-  res.json({ ready: true, success: true, token: session.token, user: session.user });
+exports.googleSessionPoll = async (req, res) => {
+  try {
+    const session = await OAuthSession.findOne({ sessionId: req.params.sessionId });
+    if (!session || !session.ready) return res.json({ ready: false });
+    await OAuthSession.deleteOne({ sessionId: req.params.sessionId });
+    if (session.error) return res.json({ ready: true, success: false, message: session.error });
+    res.json({ ready: true, success: true, token: session.token, user: session.user });
+  } catch (e) {
+    res.json({ ready: false });
+  }
 };
