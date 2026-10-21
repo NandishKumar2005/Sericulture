@@ -35,13 +35,19 @@ export default function App() {
 
   const t = MOBILE_TRANSLATIONS[lang] || MOBILE_TRANSLATIONS.en;
 
-  // Restore stored session on startup
+  // Restore stored session on startup + handle Google OAuth redirect return
   useEffect(() => {
     try {
+      // Check if we just completed Google OAuth (callback page set this)
+      const googleAuthDone = sessionStorage.getItem('google_auth_done');
+      if (googleAuthDone) {
+        sessionStorage.removeItem('google_auth_done');
+      }
       const storedUser = localStorage.getItem('user');
       const token = localStorage.getItem('token');
       if (storedUser && token) {
         setUser(JSON.parse(storedUser));
+        setCurrentScreen('dashboard');
       }
     } catch (e) {
       console.warn('Could not restore user session:', e);

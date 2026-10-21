@@ -10,28 +10,67 @@
                border-top-color: #10b981; border-radius: 50%;
                animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .err { color: #f87171; font-size: 14px; margin-top: 12px; }
   </style>
 </head>
 <body>
 <div class="msg">
   <div class="spinner"></div>
   <p>Completing sign in...</p>
+  <div class="err" id="err"></div>
 </div>
 <script>
-  // Grab all query params from Google's redirect
-  const params = window.location.search; // ?code=...&state=...
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  const error = params.get('error');
 
-  // Redirect to custom scheme — Android intercepts this via intent filter
-  const deepLink = 'reshmeai://auth' + params;
+  if (error) {
+    document.getElementById('err').textContent = 'Google sign-in denied: ' + error;
+    return;
+  }
 
-  // Try deep link redirect immediately
-  window.location.href = deepLink;
+  if (!code) {
+    document.getElementById('err').textContent = 'No auth code received.';
+    return;
+  }
 
-  // Fallback: if deep link doesn't work (browser context), show message
-  setTimeout(() => {
-    document.querySelector('.msg').innerHTML =
-      '<p>Sign-in complete. Please return to the ReshmeAI app.</p>';
-  }, 2000);
+  // Retrieve PKCE data stored before redirect
+  const codeVerifier = sessionStorage.getItem('pkce_verifier');
+  const savedState   = sessionStorage.getItem('pkce_state');
+  const mode         = sessionStorage.getItem('pkce_mode') || 'login';
+
+  if (state !== savedState) {
+    document.getElementById('err').textContent = 'State mismatch error. Please try again.';
+    return;
+  }
+
+  try {
+    const res = await fetch('https://reshme-backend.onrender.com/api/auth/google-callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        code_verifier: codeVerifier,
+        redirect_uri: window.location.origin + '/auth/callback',
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.token) throw new Error(data.message || 'Sign-in failed');
+
+    // Store auth data
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    sessionStorage.setItem('google_auth_done', '1');
+
+    // Navigate back to the app
+    window.location.href = '/';
+  } catch (err) {
+    document.getElementById('err').textContent = err.message;
+  }
+})();
 </script>
 </body>
 </html>
