@@ -48,23 +48,22 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
     setLoading(true);
     setErrorMessage('');
     try {
-      const idToken = await googleSignIn();
+      const result = await googleSignIn();
+      // New flow returns { token, user } directly from backend
+      const token       = result?.token;
+      const userProfile = result?.user;
+
       if (mode === 'verify') {
-        // Register mode: just capture the token & decode email
-        const payload = decodeGoogleToken(idToken);
-        if (!payload?.email) throw new Error('Could not extract email from Google token.');
-        setGoogleVerified({ email: payload.email, idToken });
+        if (!userProfile?.email) throw new Error('Could not extract email from Google account.');
+        setGoogleVerified({ email: userProfile.email, idToken: token });
       } else {
-        // Login mode: send to backend
-        const res = await authAPI.googleLogin(idToken);
-        const token = res.token || res.data?.token;
-        const userProfile = res.user || res.data?.user;
         if (!token || !userProfile) throw new Error('Google sign-in failed. Please try again.');
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userProfile));
         onLoginSuccess(userProfile);
       }
     } catch (err) {
+      if (err.message === 'USE_BROWSER_FLOW') return;
       setErrorMessage(err.message || 'Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);

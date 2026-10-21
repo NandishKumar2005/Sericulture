@@ -3,79 +3,112 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { JWT_SECRET } = require('../middleware/auth');
 
-const client = new OAuth2Client();
+const WEB_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
+const WEB_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const client = new OAuth2Client(WEB_CLIENT_ID);
 
-// @desc  Google OAuth Sign-In / Sign-Up
-// @route POST /api/auth/google
+// ── Helper: find or create user from Google payload ──────────────────────────
+async function findOrCreateGoogleUser(payload) {
+  const { email, name, sub: googleId } = payload;
+  let user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    user = await User.create({
+      name, email: email.toLowerCase(),
+      phone: '', passwordHash: '', googleId,
+      location: 'Karnataka, India', farmName: '',
+    });
+  } else if (!user.googleId) {
+    user.googleId = googleId;
+    await user.save();
+  }
+  return user;
+}
+
+function makeJwt(user) {
+  return jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
+}
+
+function userPayload(user) {
+  return {
+    id: user._id, name: user.name, email: user.email,
+    phone: user.phone, location: user.location,
+    farmName: user.farmName || '', acreage: user.acreage || '',
+    mulberryVariety: user.mulberryVariety || '',
+    silkwormBreed: user.silkwormBreed || '',
+  };
+}
+
+// ── POST /api/auth/google  (browser ID-token flow) ───────────────────────────
 exports.googleAuth = async (req, res) => {
   try {
     const { credential } = req.body;
+    if (!credential) return res.status(400).json({ success: false, message: 'Google credential token is required' });
 
-    if (!credential) {
-      return res.status(400).json({ success: false, message: 'Google credential token is required' });
-    }
-
-    // Build audience list dynamically — accepts Web and Android client IDs
     const audiences = [
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_ANDROID_CLIENT_ID,
     ].filter(Boolean);
 
-    // Verify the Google ID token
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: audiences,
-    });
-
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: audiences });
     const payload = ticket.getPayload();
+    if (!payload.email_verified) return res.status(401).json({ success: false, message: 'Google email not verified.' });
 
-    // Reject unverified Google emails
-    if (!payload.email_verified) {
-      return res.status(401).json({ success: false, message: 'Google account email is not verified. Please verify your Google email first.' });
-    }
+    const user  = await findOrCreateGoogleUser(payload);
+    const token = makeJwt(user);
 
-    const { email, name, sub: googleId } = payload;
-
-    // Find or create user
-    let user = await User.findOne({ email: email.toLowerCase() });
-
-    if (!user) {
-      // New user via Google — create account (no password needed)
-      user = await User.create({
-        name,
-        email: email.toLowerCase(),
-        phone: '',
-        passwordHash: '',          // no password for Google users
-        googleId,
-        location: 'Karnataka, India',
-        farmName: '',
-      });
-    } else if (!user.googleId) {
-      // Existing email/phone user — link Google account
-      user.googleId = googleId;
-      await user.save();
-    }
-
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
-
-    res.status(200).json({
-      success: true,
-      message: 'Google sign-in successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        location: user.location,
-        farmName: user.farmName || '',
-        acreage: user.acreage || '',
-        mulberryVariety: user.mulberryVariety || '',
-        silkwormBreed: user.silkwormBreed || '',
-      }
-    });
+    res.status(200).json({ success: true, message: 'Google sign-in successful', token, user: userPayload(user) });
   } catch (error) {
     console.error('Google auth error:', error.message);
     res.status(401).json({ success: false, message: 'Google sign-in failed. Invalid or expired token.' });
+  }
+};
+
+// ── POST /api/auth/google-callback  (APK PKCE code exchange) ─────────────────
+exports.googleCallback = async (req, res) => {
+  try {
+    const { code, code_verifier, redirect_uri } = req.body;
+    if (!code || !code_verifier || !redirect_uri) {
+      return res.status(400).json({ success: false, message: 'Missing code, code_verifier or redirect_uri' });
+    }
+
+    if (!WEB_CLIENT_SECRET) {
+      return res.status(500).json({ success: false, message: 'Server misconfigured: missing GOOGLE_CLIENT_SECRET' });
+    }
+
+    // Exchange auth code for tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id:     WEB_CLIENT_ID,
+        client_secret: WEB_CLIENT_SECRET,
+        redirect_uri,
+        grant_type:    'authorization_code',
+        code_verifier,
+      }),
+    });
+
+    const tokens = await tokenRes.json();
+    if (!tokenRes.ok) {
+      console.error('Token exchange error:', tokens);
+      return res.status(401).json({ success: false, message: tokens.error_description || 'Token exchange failed' });
+    }
+
+    // Verify the id_token
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: [WEB_CLIENT_ID, process.env.GOOGLE_ANDROID_CLIENT_ID].filter(Boolean),
+    });
+    const payload = ticket.getPayload();
+    if (!payload.email_verified) return res.status(401).json({ success: false, message: 'Google email not verified.' });
+
+    const user  = await findOrCreateGoogleUser(payload);
+    const token = makeJwt(user);
+
+    res.status(200).json({ success: true, message: 'Google sign-in successful', token, user: userPayload(user) });
+  } catch (error) {
+    console.error('Google callback error:', error.message);
+    res.status(401).json({ success: false, message: 'Google sign-in failed: ' + error.message });
   }
 };

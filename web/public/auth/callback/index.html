@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Signing in...</title></head>
+<body>
+<script>
+  // This page receives the OAuth redirect from Google and passes it back to the APK
+  if (window.Capacitor) {
+    // Running inside Capacitor webview — dispatch event so the app can catch it
+    window.dispatchEvent(new CustomEvent('capacitorBrowserPageLoaded', { detail: { url: window.location.href } }));
+  } else {
+    // Fallback: post message to opener
+    if (window.opener) {
+      window.opener.postMessage({ type: 'oauth_callback', url: window.location.href }, '*');
+      window.close();
+    } else {
+      document.body.innerHTML = '<p>Sign-in complete. You can close this window.</p>';
+    }
+  }
+</script>
+</body>
+</html>
