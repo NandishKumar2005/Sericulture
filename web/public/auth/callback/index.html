@@ -15,29 +15,25 @@
 <body>
 <div class="msg"><div class="spinner"></div><p>Completing sign in...</p></div>
 <script>
-  const p     = new URLSearchParams(window.location.search);
-  const code  = p.get('code');
-  const state = p.get('state');
-  const error = p.get('error');
+(async function() {
+  const p           = new URLSearchParams(window.location.search);
+  const code        = p.get('code');
+  const state       = p.get('state');
+  const error       = p.get('error');
+  const sessionId   = localStorage.getItem('oauth_session_id');
+  const codeVerifier = localStorage.getItem('oauth_verifier');
+  const redirectUri  = window.location.origin + '/auth/callback';
 
-  const msg = { type: 'google_oauth', code, state, error };
+  await fetch('https://reshme-backend.onrender.com/api/auth/google-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, code, code_verifier: codeVerifier, redirect_uri: redirectUri, error }),
+  }).catch(() => {});
 
-  // Post to parent window (Capacitor in-app browser's parent is the app webview)
-  if (window.opener) {
-    window.opener.postMessage(msg, '*');
-  } else {
-    // Capacitor Browser: parent IS the app webview
-    window.parent.postMessage(msg, '*');
-  }
-
-  // Also store in localStorage as fallback
-  localStorage.setItem('oauth_code', code || '');
-  localStorage.setItem('oauth_state', state || '');
-  localStorage.setItem('oauth_error', error || '');
-  localStorage.setItem('oauth_ts', Date.now().toString());
-
-  // Close this window/tab after a moment
-  setTimeout(() => window.close(), 800);
+  document.querySelector('p').textContent = 'Sign-in complete! Return to the app.';
+  // Close the in-app browser — Capacitor Browser will detect this
+  window.close();
+})();
 </script>
 </body>
 </html>

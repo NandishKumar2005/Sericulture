@@ -145,3 +145,65 @@ exports.googleCallback = async (req, res) => {
     res.status(401).json({ success: false, message: 'Google sign-in failed: ' + error.message });
   }
 };
+
+// ── In-memory session store for APK OAuth polling ────────────────────────────
+const oauthSessions = new Map(); // sessionId -> { token, user, error, ts }
+
+// Clean up sessions older than 5 minutes
+setInterval(() => {
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  for (const [id, s] of oauthSessions) {
+    if (s.ts < cutoff) oauthSessions.delete(id);
+  }
+}, 60000);
+
+// POST /api/auth/google-session — callback page stores result here
+exports.googleSessionStore = async (req, res) => {
+  try {
+    const { sessionId, code, code_verifier, redirect_uri } = req.body;
+    if (!sessionId) return res.status(400).json({ success: false, message: 'Missing sessionId' });
+
+    if (!code) {
+      oauthSessions.set(sessionId, { error: req.body.error || 'No code', ts: Date.now() });
+      return res.json({ success: true });
+    }
+
+    // Exchange code for tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code, client_id: WEB_CLIENT_ID, client_secret: WEB_CLIENT_SECRET,
+        redirect_uri, grant_type: 'authorization_code', code_verifier,
+      }),
+    });
+    const tokens = await tokenRes.json();
+    if (!tokenRes.ok) {
+      oauthSessions.set(sessionId, { error: tokens.error_description || 'Token exchange failed', ts: Date.now() });
+      return res.json({ success: true });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: [WEB_CLIENT_ID, process.env.GOOGLE_ANDROID_CLIENT_ID].filter(Boolean),
+    });
+    const payload = ticket.getPayload();
+    const user    = await findOrCreateGoogleUser(payload);
+    const token   = makeJwt(user);
+
+    oauthSessions.set(sessionId, { token, user: userPayload(user), ts: Date.now() });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('googleSessionStore error:', error.message);
+    res.json({ success: true }); // always 200 so callback page doesn't show error
+  }
+};
+
+// GET /api/auth/google-session/:sessionId — APK polls this
+exports.googleSessionPoll = (req, res) => {
+  const session = oauthSessions.get(req.params.sessionId);
+  if (!session) return res.json({ ready: false });
+  oauthSessions.delete(req.params.sessionId);
+  if (session.error) return res.status(401).json({ ready: true, success: false, message: session.error });
+  res.json({ ready: true, success: true, token: session.token, user: session.user });
+};
