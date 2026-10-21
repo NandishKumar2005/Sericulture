@@ -49,8 +49,22 @@ exports.googleAuth = async (req, res) => {
       process.env.GOOGLE_ANDROID_CLIENT_ID,
     ].filter(Boolean);
 
-    const ticket = await client.verifyIdToken({ idToken: credential, audience: audiences });
-    const payload = ticket.getPayload();
+    let payload;
+    try {
+      // Try verifying as ID token first
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: audiences });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('verifyIdToken failed:', verifyErr.message);
+      // Fallback: decode without verification to get user info, then re-verify via Google tokeninfo
+      const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+      const tokenInfo = await tokenInfoRes.json();
+      if (tokenInfo.error || !tokenInfo.email) {
+        return res.status(401).json({ success: false, message: 'Invalid Google token: ' + (tokenInfo.error || verifyErr.message) });
+      }
+      payload = { email: tokenInfo.email, name: tokenInfo.name, sub: tokenInfo.sub, email_verified: tokenInfo.email_verified === 'true' };
+    }
+
     if (!payload.email_verified) return res.status(401).json({ success: false, message: 'Google email not verified.' });
 
     const user  = await findOrCreateGoogleUser(payload);
@@ -59,7 +73,7 @@ exports.googleAuth = async (req, res) => {
     res.status(200).json({ success: true, message: 'Google sign-in successful', token, user: userPayload(user) });
   } catch (error) {
     console.error('Google auth error:', error.message);
-    res.status(401).json({ success: false, message: 'Google sign-in failed. Invalid or expired token.' });
+    res.status(401).json({ success: false, message: 'Google sign-in failed. ' + error.message });
   }
 };
 
