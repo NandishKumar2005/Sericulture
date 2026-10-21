@@ -30,9 +30,14 @@ export async function nativeGoogleSignIn() {
   localStorage.setItem('oauth_verifier', verifier);
 
   const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
-    client_id: CLIENT_ID, redirect_uri: REDIRECT, response_type: 'code',
-    scope: 'openid email profile', state: sessionId,
-    code_challenge: challenge, code_challenge_method: 'S256', prompt: 'select_account',
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state: sessionId + '|' + verifier, // encode both in state param
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    prompt: 'select_account',
   });
 
   return new Promise((resolve, reject) => {

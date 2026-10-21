@@ -12,6 +12,7 @@
     .check { font-size: 48px; display: none; margin-bottom: 12px; }
     h2 { margin: 0 0 8px; font-size: 20px; }
     p  { color: #94a3b8; font-size: 14px; margin: 0; }
+    .err { color: #f87171; }
   </style>
 </head>
 <body>
@@ -23,26 +24,46 @@
 </div>
 <script>
 (async () => {
-  const params      = new URLSearchParams(window.location.search);
-  const code        = params.get('code');
-  const error       = params.get('error');
-  const sessionId   = localStorage.getItem('oauth_session_id');
-  const verifier    = localStorage.getItem('oauth_verifier');
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  const state  = params.get('state') || '';
+  const error  = params.get('error');
+
+  // sessionId and verifier are encoded in state as "sessionId|verifier"
+  const parts      = state.split('|');
+  const sessionId  = parts[0] || '';
+  const verifier   = parts[1] || '';
   const redirectUri = window.location.origin + '/auth/callback';
 
+  const show = (icon, title, sub, isErr) => {
+    document.getElementById('spin').style.display  = 'none';
+    document.getElementById('check').style.display = 'block';
+    document.getElementById('check').textContent   = icon;
+    document.getElementById('title').textContent   = title;
+    document.getElementById('sub').textContent     = sub;
+    if (isErr) document.getElementById('sub').classList.add('err');
+  };
+
+  if (!sessionId) {
+    show('❌', 'Error', 'Missing session ID. Please try again.', true);
+    return;
+  }
+
   try {
-    await fetch('https://reshme-backend.onrender.com/api/auth/google-session', {
+    const res = await fetch('https://reshme-backend.onrender.com/api/auth/google-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId, code, code_verifier: verifier, redirect_uri: redirectUri, error }),
     });
-  } catch(e) {}
-
-  // Show success and tell user to go back
-  document.getElementById('spin').style.display  = 'none';
-  document.getElementById('check').style.display = 'block';
-  document.getElementById('title').textContent   = 'Signed in!';
-  document.getElementById('sub').textContent     = 'Go back to the ReshmeAI app to continue.';
+    const data = await res.json();
+    if (data.success) {
+      show('✅', 'Signed in!', 'Go back to the ReshmeAI app to continue.', false);
+    } else {
+      show('❌', 'Sign-in failed', data.message || 'Please try again.', true);
+    }
+  } catch(e) {
+    show('❌', 'Network error', e.message, true);
+  }
 })();
 </script>
 </body>
