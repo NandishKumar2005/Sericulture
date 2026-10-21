@@ -3,7 +3,7 @@ import { User, Phone, Lock, MapPin, ArrowRight, ShieldCheck, AlertCircle, Loader
 import { GoogleLogin } from '@react-oauth/google';
 import Card from '../components/Card';
 import { authAPI } from '../services/api';
-import { isNativeAndroid } from '../hooks/useGoogleAuth';
+import { isNativeAndroid, nativeGoogleSignIn } from '../hooks/useGoogleAuth';
 
 export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
   const a = t?.auth || {};
@@ -141,48 +141,37 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
     }
   };
 
-  // ── Native APK Google Sign-In: direct redirect, no popup ────────────────────
-  const handleNativeGoogleRedirect = async (mode) => {
-    const clientId = '821368596969-ecg9q9cj692prkp1uutckppssf6l1ccs.apps.googleusercontent.com';
-    const redirectUri = 'https://sericulture-iota.vercel.app/auth/callback';
-
-    // Generate PKCE
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    const codeVerifier = btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    const encoder = new TextEncoder();
-    const data = encoder.encode(codeVerifier);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    const state = codeVerifier.substring(0, 16);
-
-    // Save for when we come back
-    sessionStorage.setItem('pkce_verifier', codeVerifier);
-    sessionStorage.setItem('pkce_state', state);
-    sessionStorage.setItem('pkce_mode', mode);
-
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: 'openid email profile',
-      state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-      prompt: 'select_account',
-    });
-
-    // Direct navigation — works in any webview, no popup needed
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  // ── Native APK Google Sign-In via Capacitor Browser (in-app overlay) ───────
+  const handleNativeGoogleSignIn = async (mode) => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const result = await nativeGoogleSignIn();
+      const token       = result?.token;
+      const userProfile = result?.user;
+      if (mode === 'verify') {
+        if (!userProfile?.email) throw new Error('Could not get email from Google.');
+        setGoogleVerified({ email: userProfile.email, idToken: token });
+      } else {
+        if (!token || !userProfile) throw new Error('Sign-in failed. Please try again.');
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userProfile));
+        onLoginSuccess(userProfile);
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Google sign-in failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ── Google Button — adaptive: redirect for APK, GSI for browser ──────────
+  // ── Google Button — Capacitor Browser for APK, GoogleLogin for browser ──────
   const GoogleButton = ({ mode }) => {
     if (isNative) {
       return (
         <button
           type="button"
-          onClick={() => handleNativeGoogleRedirect(mode)}
+          onClick={() => handleNativeGoogleSignIn(mode)}
           disabled={loading}
           className="flex items-center justify-center gap-2 bg-white text-slate-800 font-bold text-sm px-4 py-2.5 rounded-xl shadow border border-slate-200 w-full hover:bg-slate-50 transition-all disabled:opacity-50"
         >
@@ -192,7 +181,7 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
             <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
             <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
           </svg>
-          {mode === 'verify' ? 'Verify with Google' : 'Sign in with Google'}
+          {loading ? 'Signing in...' : (mode === 'verify' ? 'Verify with Google' : 'Sign in with Google')}
         </button>
       );
     }
