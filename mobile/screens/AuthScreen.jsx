@@ -43,33 +43,6 @@ export default function AuthScreen({ onLoginSuccess, t, lang, setLang }) {
     }
   };
 
-  // ── Native Android Google Sign-In ──────────────────────────────────
-  const handleNativeGoogleSignIn = async (mode) => {
-    setLoading(true);
-    setErrorMessage('');
-    try {
-      const result = await googleSignIn();
-      // New flow returns { token, user } directly from backend
-      const token       = result?.token;
-      const userProfile = result?.user;
-
-      if (mode === 'verify') {
-        if (!userProfile?.email) throw new Error('Could not extract email from Google account.');
-        setGoogleVerified({ email: userProfile.email, idToken: token });
-      } else {
-        if (!token || !userProfile) throw new Error('Google sign-in failed. Please try again.');
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userProfile));
-        onLoginSuccess(userProfile);
-      }
-    } catch (err) {
-      if (err.message === 'USE_BROWSER_FLOW') return;
-      setErrorMessage(err.message || 'Google sign-in failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // ── Browser Google Verify (register) ──────────────────────────────
   const handleBrowserGoogleVerify = (credentialResponse) => {
     const payload = decodeGoogleToken(credentialResponse.credential);
