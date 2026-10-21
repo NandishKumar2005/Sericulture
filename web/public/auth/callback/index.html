@@ -1,38 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Completing sign in...</title>
+  <title>Sign in complete</title>
   <style>
     body { background: #0f172a; color: #fff; font-family: Arial, sans-serif;
            display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-    .msg { text-align: center; }
-    .spinner { width: 40px; height: 40px; border: 3px solid #334155;
-               border-top-color: #10b981; border-radius: 50%;
-               animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    .box { text-align: center; padding: 32px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #10b981;
+               border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .check { font-size: 48px; display: none; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 20px; }
+    p  { color: #94a3b8; font-size: 14px; margin: 0; }
   </style>
 </head>
 <body>
-<div class="msg"><div class="spinner"></div><p>Completing sign in...</p></div>
+<div class="box">
+  <div class="spinner" id="spin"></div>
+  <div class="check" id="check">✅</div>
+  <h2 id="title">Completing sign in...</h2>
+  <p id="sub">Please wait</p>
+</div>
 <script>
-(async function() {
-  const p           = new URLSearchParams(window.location.search);
-  const code        = p.get('code');
-  const state       = p.get('state');
-  const error       = p.get('error');
+(async () => {
+  const params      = new URLSearchParams(window.location.search);
+  const code        = params.get('code');
+  const error       = params.get('error');
   const sessionId   = localStorage.getItem('oauth_session_id');
-  const codeVerifier = localStorage.getItem('oauth_verifier');
-  const redirectUri  = window.location.origin + '/auth/callback';
+  const verifier    = localStorage.getItem('oauth_verifier');
+  const redirectUri = window.location.origin + '/auth/callback';
 
-  await fetch('https://reshme-backend.onrender.com/api/auth/google-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, code, code_verifier: codeVerifier, redirect_uri: redirectUri, error }),
-  }).catch(() => {});
+  try {
+    await fetch('https://reshme-backend.onrender.com/api/auth/google-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, code, code_verifier: verifier, redirect_uri: redirectUri, error }),
+    });
+  } catch(e) {}
 
-  document.querySelector('p').textContent = 'Sign-in complete! Return to the app.';
-  // Close the in-app browser — Capacitor Browser will detect this
-  window.close();
+  // Show success and tell user to go back
+  document.getElementById('spin').style.display  = 'none';
+  document.getElementById('check').style.display = 'block';
+  document.getElementById('title').textContent   = 'Signed in!';
+  document.getElementById('sub').textContent     = 'Go back to the ReshmeAI app to continue.';
 })();
 </script>
 </body>
